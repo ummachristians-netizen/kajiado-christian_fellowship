@@ -9,7 +9,14 @@ body {
     background: radial-gradient(circle at 20% 0%, #e8eefc 0%, #f3f6fb 45%, #f8fafd 100%);
     color: #132033;
     min-height: 100vh;
+    max-width: 100%;
+    overflow-x: clip;
 }
+
+img, video, iframe, svg, canvas { max-width: 100%; height: auto; }
+button, input, select, textarea { max-width: 100%; }
+.office-main, .content, .content > *, .card, form, .grid-2 > * { min-width: 0; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(31,115,183,.25); outline-offset: 2px; }
 
 .office-layout {
     display: flex;
@@ -289,4 +296,19 @@ textarea:focus {
     .office-sidebar.active {
         transform: translateX(0);
     }
+}
+
+@media (max-width: 600px) {
+    .office-main { padding: 10px; }
+    .office-sidebar { width: min(86vw, 320px); }
+    .topbar { align-items: flex-start; flex-wrap: wrap; padding: 11px; }
+    .admin-wrap { padding: 12px; }
+    .admin-card, .card { padding: 15px; }
+    .btn { min-height: 44px; white-space: normal; }
+    form .btn { width: 100%; }
+    input, textarea, select { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }

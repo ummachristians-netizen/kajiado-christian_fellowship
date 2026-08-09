@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /umma-christians-main/admin.html
+Disallow: /umma-christians-main/admin-login.html
+Disallow: /umma-christians-main/membership.html
+
+Sitemap: https://kajiado-christian-fellowship.vercel.app/sitemap.xml

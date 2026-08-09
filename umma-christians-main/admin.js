@@ -643,6 +643,7 @@ function initOfficeDashboard() {
 
         const programsList = document.getElementById("adminProgramsList");
         const eventsList = document.getElementById("eventsList");
+        const membersList = document.getElementById("adminMembersList");
         const photosList = document.getElementById("adminPhotosList");
         const activityFeed = document.getElementById("activityFeed");
         let localActivityItems = [];
@@ -713,6 +714,23 @@ function initOfficeDashboard() {
                 })
                 .join("");
         });
+
+        onSnapshot(query(collection(db, "members"), orderBy("createdAt", "desc")), (snap) => {
+            if (!membersList) return;
+            if (snap.empty) {
+                membersList.innerHTML = "<li>No membership applications yet.</li>";
+                return;
+            }
+            membersList.innerHTML = snap.docs.map((record) => {
+                const member = record.data();
+                const status = String(member.status || "pending").toLowerCase();
+                const action = status === "active"
+                    ? `<button class="btn btn-outline" data-member-status="suspended" data-member-id="${record.id}" type="button">Suspend</button>`
+                    : `<button class="btn btn-primary" data-member-status="active" data-member-id="${record.id}" type="button">Approve</button>`;
+                const reject = status === "rejected" ? "" : ` <button class="btn btn-danger" data-member-status="rejected" data-member-id="${record.id}" type="button">Reject</button>`;
+                return `<li><strong>${escAttr(member.name || "Unnamed organization")}</strong><div class="event-meta"><span>${escAttr(member.type || "Organization")}</span><span>${escAttr(member.contactName || "")}</span><span>${escAttr(member.email || "")}</span><span class="chip">${escAttr(status.toUpperCase())}</span></div><p>${escAttr(member.location || member.town || "Location not provided")}</p>${action}${reject}</li>`;
+            }).join("");
+        }, () => setStatus("Membership applications could not be loaded.", true));
 
         onValue(dbRef(rtdb, "gallery"), (snap) => {
             if (!photosList) return;
@@ -871,6 +889,23 @@ function initOfficeDashboard() {
         }
 
         document.addEventListener("click", async (e) => {
+            const memberStatusBtn = e.target.closest("[data-member-status]");
+            if (memberStatusBtn) {
+                const id = memberStatusBtn.getAttribute("data-member-id");
+                const nextStatus = memberStatusBtn.getAttribute("data-member-status");
+                if (!id || !nextStatus) return;
+                memberStatusBtn.disabled = true;
+                try {
+                    await updateDoc(doc(db, "members", id), { status: nextStatus, updatedAt: Date.now() });
+                    setStatus(`Membership status changed to ${nextStatus}.`);
+                    await logActivity(`Changed membership ${id} to ${nextStatus}`, "membership");
+                } catch (error) {
+                    setStatus("Membership status could not be changed.", true);
+                    memberStatusBtn.disabled = false;
+                }
+                return;
+            }
+
             const activityBtn = e.target.closest("[data-delete-activity]");
             if (activityBtn) {
                 const id = activityBtn.getAttribute("data-delete-activity");

@@ -6,7 +6,9 @@
   <title>Kajiado Christian Fellowship | Portal</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="member-manifest.webmanifest">
+  <meta name="theme-color" content="#0b1f33">
+  <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="membership.css">
 </head>
 <body>
@@ -15,8 +17,9 @@
       <section class="auth-screen" id="authScreen">
         <section class="auth-card" id="loginPanel">
           <div class="auth-card-head">
+            <a class="auth-logo-link" href="index.html" aria-label="Return to KCF homepage"><img class="auth-logo" src="logo.svg" alt="Kajiado Christian Fellowship logo"></a>
             <p class="eyebrow">Member access</p>
-            <h3>Login to continue</h3>
+            <h1>Welcome back</h1>
             <p class="section-sub">Sign in to access your member portal.</p>
           </div>
           <form id="loginForm" class="auth-form">
@@ -41,6 +44,7 @@
 
         <section class="auth-card hidden" id="registerPanel">
           <div class="auth-card-head">
+            <a class="auth-logo-link" href="index.html" aria-label="Return to KCF homepage"><img class="auth-logo" src="logo.svg" alt="Kajiado Christian Fellowship logo"></a>
             <p class="eyebrow">New member</p>
             <h3>Register Your Organization</h3>
             <p class="section-sub">Create your account in a few simple steps.</p>
@@ -73,6 +77,10 @@
             <div>
               <label for="email">Email Address</label>
               <input id="email" type="email" required>
+            </div>
+            <div class="grid-2">
+              <div><label for="registerPassword">Create Password</label><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required></div>
+              <div><label for="confirmPassword">Confirm Password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Repeat your password" required></div>
             </div>
             <button class="button button-primary button-animate" type="submit">Register Your Organization</button>
           </form>
@@ -205,17 +213,17 @@
       <button class="modal-close" type="button" data-close-success>&times;</button>
       <div class="success-mark">✓</div>
       <p class="eyebrow">KCF Membership</p>
-      <h3 id="successTitle">Registration Submitted Successfully!</h3>
-      <p id="successText">Welcome to KCF. Your membership application has been received.</p>
+      <h3 id="successTitle">Registration successful! Welcome to KCF.</h3>
+      <p id="successText">Your membership application has been saved successfully.</p>
       <div class="success-grid">
         <div><span>Organization</span><strong id="successOrg">-</strong></div>
         <div><span>Member ID / Code</span><strong id="successCode">-</strong></div>
         <div><span>Status</span><strong>Pending Approval</strong></div>
       </div>
-      <p class="muted">Stay connected with KCF announcements, events, fellowship updates and important information.</p>
+      <p class="muted">Join the official KCF WhatsApp Channel to stay connected with announcements, events, and fellowship updates.</p>
       <div class="modal-actions">
-        <a class="button button-primary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join WhatsApp Channel →</a>
-        <button class="button button-ghost" id="continuePortalBtn" type="button">Continue to Member Portal</button>
+        <a class="button button-primary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join KCF WhatsApp Channel</a>
+        <button class="button button-ghost" id="continuePortalBtn" type="button">Back to Login</button>
       </div>
     </section>
   </div>
@@ -263,8 +271,9 @@
     </aside>
   </div>
 
-  <div class="toast hidden" id="toast"></div>
-  <nav class="bottom-nav" aria-label="Member navigation">
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+  <footer class="portal-footer"><p>&copy; 2026 Kajiado Christian Fellowship, Kajiado.</p><p>Contact: <a href="tel:+254788160688">0788160688</a></p><p>Built by Kaka Under Teams Technologies</p></footer>
+  <nav class="bottom-nav hidden" id="bottomNav" aria-label="Member navigation">
     <button type="button" data-section="overview">Dashboard</button>
     <button type="button" data-section="events">Events</button>
     <button type="button" data-section="create">Create</button>

@@ -72,6 +72,13 @@ function normalizeTableRow(table, row = {}) {
                 description: normalizeText(row.description),
                 hostName: normalizeText(row.host_name),
                 hostType: normalizeText(row.host_type),
+                organizer: normalizeText(row.host_name, "Kajiado Christian Fellowship"),
+                organizerType: normalizeText(row.host_type, "KCF"),
+                sourceType: "kcf",
+                bannerUrl: normalizeText(row.image_url),
+                startTime: normalizeText(row.start_time || row.time),
+                endTime: normalizeText(row.end_time),
+                venue: normalizeText(row.location),
                 pollYes: Number(row.poll_yes || 0),
                 pollNo: Number(row.poll_no || 0),
                 createdAt: toMillis(row.created_at),
@@ -128,7 +135,7 @@ function normalizeTableRow(table, row = {}) {
                 website: normalizeText(row.website),
                 description: normalizeText(row.description),
                 logoUrl: normalizeText(row.logo_url),
-                status: normalizeText(row.status, "Pending Approval"),
+                status: normalizeText(row.membership_status, "pending"),
                 createdAt: toMillis(row.created_at),
                 updatedAt: toMillis(row.updated_at)
             };
@@ -213,6 +220,9 @@ function buildRow(table, payload = {}, existing = {}, idOverride) {
                 description: normalizeText(payload.description ?? existing.description),
                 host_name: normalizeText(payload.hostName ?? payload.host_name ?? existing.host_name),
                 host_type: normalizeText(payload.hostType ?? payload.host_type ?? existing.host_type),
+                image_url: normalizeText(payload.bannerUrl ?? payload.imageUrl ?? existing.image_url),
+                start_time: normalizeText(payload.startTime ?? payload.time ?? existing.start_time),
+                end_time: normalizeText(payload.endTime ?? existing.end_time),
                 poll_yes: Number(payload.pollYes ?? payload.poll_yes ?? existing.poll_yes ?? 0),
                 poll_no: Number(payload.pollNo ?? payload.poll_no ?? existing.poll_no ?? 0),
                 created_at: resolveCreatedAt(payload, existing),
@@ -269,7 +279,7 @@ function buildRow(table, payload = {}, existing = {}, idOverride) {
                 website: normalizeText(payload.website ?? existing.website),
                 description: normalizeText(payload.description ?? existing.description),
                 logo_url: normalizeText(payload.logoUrl ?? existing.logo_url),
-                status: normalizeText(payload.status ?? existing.status, "Pending Approval"),
+                membership_status: normalizeText(payload.status ?? existing.membership_status, "pending").toLowerCase(),
                 created_at: resolveCreatedAt(payload, existing),
                 updated_at: now
             };

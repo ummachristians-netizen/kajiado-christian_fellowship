@@ -106,17 +106,6 @@ function initSidebar() {
     const main = document.querySelector(".main");
     if (!sidebar || !hamburger || !overlay) return;
 
-    let closeButton = sidebar.querySelector("[data-close-menu]");
-    if (!closeButton) {
-        closeButton = document.createElement("button");
-        closeButton.type = "button";
-        closeButton.className = "menu-close";
-        closeButton.setAttribute("data-close-menu", "true");
-        closeButton.setAttribute("aria-label", "Close menu");
-        closeButton.textContent = "×";
-        sidebar.appendChild(closeButton);
-    }
-
     const isMobile = () => window.innerWidth <= 860;
 
     const closeMenu = () => {
@@ -141,7 +130,6 @@ function initSidebar() {
         overlay.classList.add("active");
     };
 
-    closeButton.addEventListener("click", closeMenu);
     hamburger.addEventListener("click", () => {
         if (sidebar.classList.contains("active")) closeMenu();
         else openMenu();
@@ -169,6 +157,19 @@ function highlightCurrentNav() {
         const href = (link.getAttribute("href") || "").toLowerCase();
         if (href === path) link.classList.add("active");
     });
+}
+
+function normalizeFooter() {
+    const footer = document.querySelector(".footer");
+    if (!footer) return;
+    footer.classList.add("footer-centered");
+    footer.innerHTML = `
+        <div class="footer-inner">
+            <div class="footer-summary"><strong>Kajiado Christian Fellowship</strong><p>Faith. Fellowship. Mission.</p></div>
+            <nav class="footer-links" aria-label="Footer navigation"><a href="about.html">About</a><a href="vision.html">Vision</a><a href="ministrie.html">Ministries</a><a href="event.html">Events</a><a href="contact.html">Contact</a></nav>
+            <div class="footer-contact"><strong>Connect with KCF</strong><a href="tel:+254788160688">0788160688</a><a href="membership.html">Member Portal</a></div>
+        </div>
+        <div class="footer-meta"><p>&copy; 2026 Kajiado Christian Fellowship, Kajiado.</p><p>Contact: <a href="tel:+254788160688">0788160688</a></p><p class="builder-credit">Built by Kaka Under Teams Technologies</p></div>`;
 }
 
 function initScrollReveal() {
@@ -250,7 +251,7 @@ function renderSiteConfig(cfg = {}) {
     if (verseTextEl) verseTextEl.textContent = cfg.verseText || "Verse will be published by the ministry office.";
     if (verseRefEl) verseRefEl.textContent = cfg.verseReference || "-";
     if (yearThemeEl) yearThemeEl.textContent = cfg.themeYear || "Not set yet.";
-    if (semThemeEl) semThemeEl.textContent = cfg.themeDay || cfg.themeSemester || "Not set yet.";
+    if (semThemeEl) semThemeEl.textContent = cfg.themeSemester || cfg.themeDay || "Theme will be announced soon.";
     if (contactEmailEl) contactEmailEl.textContent = cfg.contactEmail || "Not set yet.";
     if (fellowshipDayEl) fellowshipDayEl.textContent = cfg.fellowshipDay || "Not set yet.";
     if (fellowshipTimeEl) fellowshipTimeEl.textContent = cfg.fellowshipTime || "Not set yet.";
@@ -284,60 +285,57 @@ function watchPrograms() {
 function watchEvents() {
     const container = document.getElementById("eventsList");
     if (!container) return;
-    const q = query(collection(db, "events"), orderBy("date", "asc"));
-    onSnapshot(q, (snap) => {
-        if (snap.empty) {
-            container.innerHTML = "<li class=\"event-card\"><strong>No upcoming events yet.</strong><p>Stay connected for fellowship gatherings, ministry activities, and community events.</p><p class=\"muted\">Explore membership to stay informed when new programs are announced.</p></li>";
+    const feeds = { kcf: [], members: [] };
+
+    const render = () => {
+        const events = [...feeds.kcf, ...feeds.members]
+            .filter((event) => !event.status || event.status === "published")
+            .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+
+        if (!events.length) {
+            container.innerHTML = `<li class="events-empty"><strong>No events have been posted yet.</strong><span>New KCF and member events will appear here.</span></li>`;
             return;
         }
-        container.innerHTML = snap.docs
-            .map((d) => {
-                const e = d.data();
-                const yes = Number(e.pollYes || 0);
-                const no = Number(e.pollNo || 0);
-                const total = yes + no;
-                const voteShare = total ? Math.round((yes / total) * 100) : 0;
-                return `
-                <li class="event-card">
-                    <div class="event-head">
-                        <div>
-                            <p class="event-kicker">${e.hostName || "KCF"}</p>
-                            <strong>${e.title || "Untitled Event"}</strong>
-                        </div>
-                        <span class="chip">${e.category || "General"}</span>
-                    </div>
-                    <div class="event-meta">
-                        <span>${formatHumanDate(e.date || "")}</span>
-                        <span>${e.time || ""}</span>
-                        <span>${e.location || ""}</span>
-                    </div>
-                    <p>${e.description || ""}</p>
-                    <div class="poll-block">
-                        <div class="poll-track"><span style="width:${voteShare}%"></span></div>
-                        <div class="poll-stats">
-                            <span>${yes} available</span>
-                            <span>${no} unavailable</span>
-                        </div>
-                        <div class="poll-actions">
-                            <button class="btn btn-primary" type="button" data-vote="${d.id}" data-choice="yes">I am available</button>
-                            <button class="btn btn-outline" type="button" data-vote="${d.id}" data-choice="no">Not available</button>
-                        </div>
-                    </div>
-                </li>`;
-            })
-            .join("");
 
-        container.querySelectorAll("[data-vote]").forEach((button) => {
-            button.addEventListener("click", async () => {
-                const eventId = button.getAttribute("data-vote");
-                const choice = button.getAttribute("data-choice");
-                try {
-                    await voteOnEvent(eventId, choice);
-                } catch (error) {
-                    console.error("Unable to submit vote:", error);
-                }
-            });
-        });
+        container.innerHTML = events.map((event) => {
+            const isKcf = event.sourceType === "kcf";
+            const organizer = isKcf
+                ? "Kajiado Christian Fellowship"
+                : (event.organizer || event.hostName || "KCF Member Organisation");
+            const organizerType = isKcf ? "KCF Event" : (event.organizerType || event.category || "Member Event");
+            const banner = normalizeCloudImageUrl(event.bannerUrl || event.imageUrl || "");
+            const time = [event.startTime || event.time, event.endTime].filter(Boolean).join(" – ");
+            const venue = event.venue || event.location || "Venue to be announced";
+            const caption = event.description || "Join us for this upcoming fellowship event.";
+
+            return `<li class="visual-event-card">
+                <figure class="event-figure${banner ? "" : " event-figure-fallback"}">
+                    ${banner ? `<img src="${escapeAttr(banner)}" alt="${escapeAttr(event.title || "Event banner")}" loading="lazy" onerror="this.hidden=true">` : ""}
+                    <span class="event-type-badge">${escapeHtml(organizerType)}</span>
+                </figure>
+                <div class="event-card-body">
+                    <p class="event-organizer">Hosted by ${escapeHtml(organizer)}</p>
+                    <h2>${escapeHtml(event.title || "Upcoming Event")}</h2>
+                    <div class="event-details">
+                        <span>${escapeHtml(formatHumanDate(event.date || "Date to be announced"))}</span>
+                        ${time ? `<span>${escapeHtml(time)}</span>` : ""}
+                        <span>${escapeHtml(venue)}</span>
+                    </div>
+                    <p class="event-caption">${escapeHtml(caption)}</p>
+                    ${event.registrationLink ? `<a class="btn btn-primary" href="${escapeAttr(event.registrationLink)}" target="_blank" rel="noopener noreferrer">Event Details</a>` : ""}
+                </div>
+            </li>`;
+        }).join("");
+    };
+
+    onSnapshot(query(collection(db, "events"), orderBy("date", "asc")), (snap) => {
+        feeds.kcf = snap.docs.map((document) => ({ id: document.id, ...document.data(), sourceType: "kcf" }));
+        render();
+    });
+
+    onSnapshot(query(collection(db, "member_events"), orderBy("date", "asc")), (snap) => {
+        feeds.members = snap.docs.map((document) => ({ id: document.id, ...document.data() }));
+        render();
     });
 }
 
@@ -476,6 +474,7 @@ function initFeedbackForm() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+    normalizeFooter();
     initSidebar();
     highlightCurrentNav();
     initScrollReveal();

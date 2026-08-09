@@ -16,21 +16,6 @@ begin
 end;
 $$;
 
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.office_admins oa
-    where oa.user_id = auth.uid()
-      and oa.is_active = true
-  );
-$$;
-
 create or replace function public.current_user_email()
 returns citext
 language sql
@@ -115,10 +100,14 @@ create table if not exists public.members (
   organization_type text not null check (
     organization_type in ('Church', 'Christian Institution', 'Ministry', 'Christian Organization')
   ),
+  denomination text not null default '',
+  registration_number text not null default '',
   contact_name text not null,
+  contact_role text not null default '',
   email citext not null unique,
   phone text not null default '',
   location text not null default '',
+  physical_location text not null default '',
   county text not null default '',
   town text not null default '',
   description text not null default '',
@@ -142,6 +131,33 @@ create table if not exists public.organization_memberships (
   updated_at timestamptz not null default now(),
   unique (organization_id, user_id)
 );
+
+-- Safe upgrades for projects created with an earlier KCF schema.
+alter table public.members add column if not exists denomination text not null default '';
+alter table public.members add column if not exists registration_number text not null default '';
+alter table public.members add column if not exists contact_role text not null default '';
+alter table public.members add column if not exists physical_location text not null default '';
+alter table public.members add column if not exists membership_status text not null default 'pending';
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'members' and column_name = 'status'
+  ) then
+    execute $migration$
+      update public.members
+      set membership_status = case lower(status)
+        when 'approved' then 'active'
+        when 'active' then 'active'
+        when 'suspended' then 'suspended'
+        when 'rejected' then 'rejected'
+        else 'pending'
+      end
+    $migration$;
+  end if;
+end;
+$$;
 
 create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
@@ -410,6 +426,50 @@ after insert on public.members
 for each row
 execute function public.add_member_owner_membership();
 
+-- Approval is an office decision. Members may edit their organization profile,
+-- but cannot approve, suspend, or reject themselves.
+create or replace function public.enforce_member_approval()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' and not public.is_admin() then
+    new.membership_status := 'pending';
+  elsif tg_op = 'UPDATE'
+    and new.membership_status is distinct from old.membership_status
+    and not public.is_admin() then
+    raise exception 'Only an active KCF office administrator can change membership approval status';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists members_enforce_approval on public.members;
+create trigger members_enforce_approval
+before insert or update on public.members
+for each row execute function public.enforce_member_approval();
+
+create or replace function public.sync_member_approval()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.organization_memberships
+  set status = new.membership_status, updated_at = now()
+  where organization_id = new.id;
+  return new;
+end;
+$$;
+
+drop trigger if exists members_sync_approval on public.members;
+create trigger members_sync_approval
+after update of membership_status on public.members
+for each row execute function public.sync_member_approval();
+
 drop trigger if exists members_generate_member_code on public.members;
 create trigger members_generate_member_code
 before insert on public.members
@@ -610,12 +670,13 @@ to authenticated
 using (user_id = auth.uid() or public.is_admin());
 
 drop policy if exists "Org memberships manage own" on public.organization_memberships;
-create policy "Org memberships manage own"
+drop policy if exists "Admins manage organization memberships" on public.organization_memberships;
+create policy "Admins manage organization memberships"
 on public.organization_memberships
 for all
 to authenticated
-using (user_id = auth.uid() or public.is_admin())
-with check (user_id = auth.uid() or public.is_admin());
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists "Public read published events" on public.events;
 create policy "Public read published events"

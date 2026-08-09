@@ -1,0 +1,18 @@
+{
+  "id": "membership.html",
+  "name": "KCF Member Portal",
+  "short_name": "KCF Members",
+  "description": "Secure member portal for approved Kajiado Christian Fellowship organizations.",
+  "start_url": "membership.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#0b1f33",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Member Login", "short_name": "Login", "url": "membership.html?view=login", "icons": [{ "src": "logo.svg", "sizes": "any", "type": "image/svg+xml" }] },
+    { "name": "Apply for Membership", "short_name": "Apply", "url": "membership.html?view=register", "icons": [{ "src": "logo.svg", "sizes": "any", "type": "image/svg+xml" }] }
+  ]
+}

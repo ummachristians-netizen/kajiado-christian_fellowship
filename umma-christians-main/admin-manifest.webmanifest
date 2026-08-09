@@ -1,0 +1,18 @@
+{
+  "id": "admin-login.html",
+  "name": "KCF Ministry Office",
+  "short_name": "KCF Admin",
+  "description": "Administration portal for the Kajiado Christian Fellowship ministry office.",
+  "start_url": "admin-login.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#0b1f33",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Open Ministry Office", "short_name": "Dashboard", "url": "admin.html", "icons": [{ "src": "logo.svg", "sizes": "any", "type": "image/svg+xml" }] },
+    { "name": "Admin Login", "short_name": "Login", "url": "admin-login.html", "icons": [{ "src": "logo.svg", "sizes": "any", "type": "image/svg+xml" }] }
+  ]
+}

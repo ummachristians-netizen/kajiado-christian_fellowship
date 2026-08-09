@@ -13,6 +13,8 @@ fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(appDistDir, { recursive: true });
 fs.cpSync(sourceDir, appDistDir, { recursive: true });
 fs.copyFileSync(path.join(rootDir, "index.html"), path.join(distDir, "index.html"));
+fs.copyFileSync(path.join(rootDir, "sitemap.xml"), path.join(distDir, "sitemap.xml"));
+fs.copyFileSync(path.join(rootDir, "robots.txt"), path.join(distDir, "robots.txt"));
 
 const runtimeConfig = [
     "window.__SUPABASE__ = {",

@@ -21,6 +21,7 @@ const CHANNEL_URL = "https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F";
 const state = {
   user: null,
   profile: null,
+  registering: false,
   notifications: [],
   events: [],
   responses: []
@@ -53,7 +54,7 @@ function setSection(section) {
 function showSuccess(profile) {
   $("successOrg").textContent = profile.name || "-";
   $("successCode").textContent = profile.code || "-";
-  $("successText").textContent = "Your organization has been registered with KCF.";
+  $("successText").textContent = "Your membership application has been saved successfully.";
   $("successModal")?.classList.remove("hidden");
 }
 
@@ -75,10 +76,6 @@ function normalize(text) {
 
 function makeMemberCode() {
   return `KCF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-}
-
-function makeTempPassword() {
-  return `Kcf${Math.random().toString(36).slice(2, 8)}9!`;
 }
 
 function requireFields(ids) {
@@ -306,8 +303,12 @@ async function handleRegister(event) {
   if (!requireFields(["orgName","orgType","location","county","contactName","phone","email"])) {
     return showToast("Please complete all required fields.");
   }
-  const password = makeTempPassword();
+  const password = $("registerPassword").value;
+  const confirmation = $("confirmPassword").value;
+  if (password.length < 8) return showToast("Choose a password with at least 8 characters.");
+  if (password !== confirmation) return showToast("The passwords do not match.");
   const email = $("email").value.trim().toLowerCase();
+  state.registering = true;
   try {
     const authResult = await createUserWithEmailAndPassword(auth, email, password);
     state.user = authResult.user;
@@ -321,20 +322,24 @@ async function handleRegister(event) {
       contactName: $("contactName").value.trim(),
       phone: $("phone").value.trim(),
       email,
-      status: "Pending Approval",
-      tempPassword: password,
+      status: "pending",
       createdAt: new Date().toISOString()
     };
     await saveProfile(profile);
     renderProfile(profile);
+    await signOut(auth);
+    state.user = null;
     showSuccess(profile);
     setAuthView("login");
     $("loginCode").value = email;
-    $("loginPassword").value = password;
-    showToast("Registration saved successfully.");
+    $("loginPassword").value = "";
+    $("registerForm").reset();
+    showToast("Registration successful! Welcome to KCF.");
   } catch (error) {
     console.error(error);
     showToast("Your registration could not be completed.");
+  } finally {
+    state.registering = false;
   }
 }
 
@@ -342,6 +347,8 @@ async function handleLogin(event) {
   event.preventDefault();
   if (!normalize($("loginCode").value) || !normalize($("loginPassword").value)) return showToast("Enter your member code/email and password.");
   try {
+    if ($("rememberMe")?.checked) localStorage.setItem("kcf-member-login", normalize($("loginCode").value));
+    else localStorage.removeItem("kcf-member-login");
     await loginMember($("loginCode").value, $("loginPassword").value);
     state.profile = await loadProfile();
     if (!state.profile) {
@@ -357,6 +364,7 @@ async function handleLogin(event) {
     renderProfile(state.profile);
     $("authScreen")?.classList.add("hidden");
     $("dashboardShell")?.classList.remove("hidden");
+    $("bottomNav")?.classList.remove("hidden");
     await loadEventsAndResponses();
     await loadNotifications();
     renderEvents();
@@ -445,22 +453,35 @@ function initShell() {
       showToast("Unable to send password reset email.");
     }
   });
+  const rememberedLogin = localStorage.getItem("kcf-member-login");
+  if (rememberedLogin && $("loginCode")) {
+    $("loginCode").value = rememberedLogin;
+    if ($("rememberMe")) $("rememberMe").checked = true;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   initShell();
   onAuthStateChanged(auth, async (user) => {
+    if (state.registering) return;
     state.user = user;
     if (!user) return;
     state.profile = await loadProfile();
-    if (state.profile) {
+    if (state.profile && canAccessPortal(state.profile)) {
       renderProfile(state.profile);
       $("authScreen")?.classList.add("hidden");
       $("dashboardShell")?.classList.remove("hidden");
+      $("bottomNav")?.classList.remove("hidden");
       await loadEventsAndResponses();
       await loadNotifications();
       renderEvents();
       renderNotifications();
+    } else {
+      await signOut(auth);
+      state.user = null;
+      $("authScreen")?.classList.remove("hidden");
+      $("dashboardShell")?.classList.add("hidden");
+      $("bottomNav")?.classList.add("hidden");
     }
   });
 });
