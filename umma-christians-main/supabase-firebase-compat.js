@@ -116,6 +116,17 @@ function normalizeTableRow(table, row = {}) {
                 type: normalizeText(row.type, "info"),
                 createdAt: toMillis(row.created_at)
             };
+        case "feedback":
+            return {
+                id: row.id,
+                name: normalizeText(row.name),
+                email: normalizeText(row.email),
+                phone: normalizeText(row.phone),
+                message: normalizeText(row.message),
+                status: normalizeText(row.status, "new"),
+                createdAt: toMillis(row.created_at),
+                updatedAt: toMillis(row.updated_at)
+            };
         case "members":
             return {
                 id: row.id,
@@ -260,10 +271,22 @@ function buildRow(table, payload = {}, existing = {}, idOverride) {
                 type: normalizeText(payload.type ?? existing.type, "info"),
                 created_at: resolveCreatedAt(payload, existing)
             };
+        case "feedback":
+            return {
+                ...(idOverride ? { id: idOverride } : {}),
+                name: normalizeText(payload.name ?? existing.name),
+                email: normalizeText(payload.email ?? existing.email),
+                phone: normalizeText(payload.phone ?? existing.phone),
+                message: normalizeText(payload.message ?? existing.message),
+                status: normalizeText(payload.status ?? existing.status, "new"),
+                created_at: resolveCreatedAt(payload, existing),
+                updated_at: now
+            };
         case "members":
             return {
                 ...(idOverride ? { id: idOverride } : {}),
                 user_id: normalizeText(payload.userId ?? existing.user_id),
+                created_by: normalizeText(payload.createdBy ?? existing.created_by ?? payload.userId),
                 member_code: normalizeText(payload.code ?? existing.member_code),
                 organization_name: normalizeText(payload.name ?? existing.organization_name),
                 organization_type: normalizeText(payload.type ?? existing.organization_type),
@@ -353,6 +376,14 @@ function sortFieldForTable(table, field) {
             return field;
         case "activity_logs":
             if (field === "createdAt") return "created_at";
+            return field;
+        case "members":
+        case "member_events":
+        case "event_polls":
+        case "notifications":
+            if (field === "createdAt") return "created_at";
+            if (field === "updatedAt") return "updated_at";
+            if (field === "date") return "event_date";
             return field;
         default:
             return field;
@@ -463,9 +494,10 @@ function subscribeToTable(table, refresh) {
     };
 }
 
-function adminLoginRedirect() {
+function authRedirect() {
     try {
-        return new URL("admin-login.html", window.location.href).toString();
+        const page = window.location.pathname.endsWith("membership.html") ? "membership.html" : "admin-login.html";
+        return new URL(page, window.location.href).toString();
     } catch (_) {
         return "admin-login.html";
     }
@@ -746,7 +778,7 @@ export async function createUserWithEmailAndPassword(_auth, email, password) {
         email,
         password,
         options: {
-            emailRedirectTo: adminLoginRedirect()
+            emailRedirectTo: authRedirect()
         }
     });
     if (error) throw error;
@@ -774,7 +806,7 @@ export async function signInWithEmailAndPassword(_auth, email, password) {
 export async function sendPasswordResetEmail(_auth, email) {
     const client = ensureSupabase();
     const { data, error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: adminLoginRedirect()
+        redirectTo: authRedirect()
     });
     if (error) throw error;
     return { data };

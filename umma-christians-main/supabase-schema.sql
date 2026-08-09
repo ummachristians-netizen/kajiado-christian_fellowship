@@ -167,10 +167,16 @@ create table if not exists public.events (
     event_type in ('KCF Event', 'Church Event', 'Institution Event', 'Ministry Event', 'Member Event')
   ),
   event_date date not null,
-  start_time time,
-  end_time time,
+  time text not null default '',
+  category text not null default 'General',
+  host_name text not null default 'Kajiado Christian Fellowship',
+  host_type text not null default 'KCF',
+  start_time text not null default '',
+  end_time text not null default '',
   location text not null default '',
   image_url text not null default '',
+  poll_yes integer not null default 0 check (poll_yes >= 0),
+  poll_no integer not null default 0 check (poll_no >= 0),
   organization_id uuid references public.members(id) on delete set null,
   created_by uuid references auth.users(id) on delete set null,
   status text not null default 'published' check (status in ('draft', 'published', 'cancelled', 'completed')),
@@ -186,6 +192,17 @@ alter table if exists public.events
 
 alter table if exists public.events
   add column if not exists status text not null default 'published';
+
+alter table if exists public.events add column if not exists time text not null default '';
+alter table if exists public.events add column if not exists category text not null default 'General';
+alter table if exists public.events add column if not exists host_name text not null default 'Kajiado Christian Fellowship';
+alter table if exists public.events add column if not exists host_type text not null default 'KCF';
+alter table if exists public.events add column if not exists poll_yes integer not null default 0;
+alter table if exists public.events add column if not exists poll_no integer not null default 0;
+alter table if exists public.events add column if not exists start_time text not null default '';
+alter table if exists public.events add column if not exists end_time text not null default '';
+alter table if exists public.events alter column start_time type text using start_time::text;
+alter table if exists public.events alter column end_time type text using end_time::text;
 
 create table if not exists public.member_events (
   id uuid primary key default gen_random_uuid(),
@@ -287,6 +304,40 @@ create table if not exists public.feedback (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.office_admins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  email citext not null unique,
+  full_name text not null default '',
+  role text not null default 'admin' check (role in ('admin')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.office_admins oa
+    where oa.user_id = auth.uid() and oa.is_active = true
+  );
+$$;
+
+create or replace function public.has_office_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.office_admins);
+$$;
+
 create or replace function public.is_member_owner(member_row_id uuid)
 returns boolean
 language sql
@@ -337,32 +388,6 @@ create index if not exists idx_event_polls_member_id on public.event_polls (memb
 create index if not exists idx_notifications_target_member_id on public.notifications (target_member_id);
 create index if not exists idx_notifications_recipient_user_id on public.notifications (recipient_user_id);
 create index if not exists idx_feedback_status on public.feedback (status);
-
-create table if not exists public.office_admins (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique references auth.users(id) on delete cascade,
-  email citext not null unique,
-  full_name text not null default '',
-  role text not null default 'admin' check (role in ('admin')),
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.office_admins oa
-    where oa.user_id = auth.uid()
-      and oa.is_active = true
-  );
-$$;
 
 comment on table public.members is 'KCF organization profiles for churches, ministries and Christian institutions.';
 comment on table public.member_events is 'Events created by KCF members and member organizations.';
@@ -543,7 +568,11 @@ grant select on public.events to anon, authenticated;
 grant select on public.member_events to anon, authenticated;
 grant select on public.polls to anon, authenticated;
 grant select on public.poll_options to anon, authenticated;
+grant insert on public.feedback to anon;
 
+grant select, insert, update, delete on public.site_config to authenticated;
+grant select, insert, update, delete on public.programs to authenticated;
+grant select, insert, update, delete on public.gallery to authenticated;
 grant select, insert, update, delete on public.activity_logs to authenticated;
 grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.members to authenticated;
@@ -705,7 +734,14 @@ create policy "Members create own events"
 on public.member_events
 for insert
 to authenticated
-with check (member_id = auth.uid() and source_type in ('member', 'church', 'institution', 'ministry', 'kcf'));
+with check (
+  member_id = auth.uid()
+  and source_type in ('member', 'church', 'institution', 'ministry', 'kcf')
+  and exists (
+    select 1 from public.members m
+    where m.user_id = auth.uid() and m.membership_status = 'active'
+  )
+);
 
 drop policy if exists "Members update own events" on public.member_events;
 create policy "Members update own events"
@@ -713,7 +749,15 @@ on public.member_events
 for update
 to authenticated
 using (member_id = auth.uid() or public.is_admin())
-with check (member_id = auth.uid() or public.is_admin());
+with check (
+  public.is_admin() or (
+    member_id = auth.uid()
+    and exists (
+      select 1 from public.members m
+      where m.user_id = auth.uid() and m.membership_status = 'active'
+    )
+  )
+);
 
 drop policy if exists "Members delete own events" on public.member_events;
 create policy "Members delete own events"
@@ -886,6 +930,19 @@ for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
+
+-- The first authenticated account created from the Admin registration screen
+-- may bootstrap the office. Once it exists, only an active admin can add others.
+drop policy if exists "Bootstrap first office admin" on public.office_admins;
+create policy "Bootstrap first office admin"
+on public.office_admins
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and email = public.current_user_email()
+  and not public.has_office_admin()
+);
 
 commit;
 
