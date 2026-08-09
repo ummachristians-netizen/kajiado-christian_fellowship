@@ -296,6 +296,11 @@ async function loginMember(codeOrEmail, password) {
   state.user = result.user;
 }
 
+function canAccessPortal(profile) {
+  const status = normalize(profile?.status).toLowerCase();
+  return status === "active" || status === "approved";
+}
+
 async function handleRegister(event) {
   event.preventDefault();
   if (!requireFields(["orgName","orgType","location","county","contactName","phone","email"])) {
@@ -340,7 +345,13 @@ async function handleLogin(event) {
     await loginMember($("loginCode").value, $("loginPassword").value);
     state.profile = await loadProfile();
     if (!state.profile) {
+      await signOut(auth);
       showToast("Member profile not found.");
+      return;
+    }
+    if (!canAccessPortal(state.profile)) {
+      await signOut(auth);
+      showToast("Your organization is pending approval. Please wait for KCF to approve your account before login.");
       return;
     }
     renderProfile(state.profile);
