@@ -1,7 +1,7 @@
-const CACHE_NAME = "kcf-pwa-v3";
+const CACHE_NAME = "kcf-pwa-v4";
 const SHELL_ASSETS = [
-  "./", "index.html", "membership.html", "admin-login.html", "admin.html",
-  "umma.css", "membership.css", "admin.css", "script.js", "membership.js", "admin.js",
+  "./", "index.html", "membership.html", "admin-login.html", "admin.html", "reset-password.html",
+  "umma.css", "membership.css", "admin.css", "script.js", "membership.js", "admin.js", "reset-password.js",
   "supabase-firebase-compat.js", "supabase-config.js", "runtime-config.js",
   "logo.svg", "favicon.svg", "manifest.webmanifest",
   "member-manifest.webmanifest", "admin-manifest.webmanifest"
@@ -26,7 +26,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).catch(async () => {
-      const page = url.pathname.endsWith("admin.html") || url.pathname.endsWith("admin-login.html")
+      const page = url.pathname.endsWith("reset-password.html") ? "reset-password.html"
+        : url.pathname.endsWith("admin.html") || url.pathname.endsWith("admin-login.html")
         ? "admin-login.html"
         : url.pathname.endsWith("membership.html") ? "membership.html" : "index.html";
       return (await caches.match(page)) || Response.error();

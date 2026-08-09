@@ -447,7 +447,7 @@ function initShell() {
     if (!email) return showToast("Enter an email address first.");
     try {
       await sendPasswordResetEmail(auth, email);
-      showToast("Password reset email sent.");
+      showToast("Secure password recovery link sent. Check your inbox and spam folder.");
     } catch (error) {
       console.error(error);
       showToast("Unable to send password reset email.");

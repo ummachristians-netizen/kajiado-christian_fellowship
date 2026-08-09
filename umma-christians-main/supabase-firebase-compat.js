@@ -807,8 +807,10 @@ export async function signInWithEmailAndPassword(_auth, email, password) {
 
 export async function sendPasswordResetEmail(_auth, email) {
     const client = ensureSupabase();
+    const portal = window.location.pathname.endsWith("membership.html") ? "member" : "admin";
+    const redirectTo = new URL(`reset-password.html?portal=${portal}`, window.location.href).toString();
     const { data, error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: authRedirect()
+        redirectTo
     });
     if (error) throw error;
     return { data };

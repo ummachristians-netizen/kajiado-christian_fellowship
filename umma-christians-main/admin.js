@@ -597,7 +597,7 @@ function initOfficeLogin() {
             }
             try {
                 await sendPasswordResetEmail(auth, email);
-                showStatus("Password reset email sent.");
+                showStatus("Secure password recovery link sent. Check your inbox and spam folder.");
             } catch (error) {
                 showStatus(mapAuthError(error), true);
             }
