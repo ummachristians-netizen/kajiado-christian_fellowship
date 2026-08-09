@@ -43,6 +43,7 @@ create table if not exists public.site_config (
   verse_reference text not null default '',
   verse_text text not null default '',
   theme_year text not null default '',
+  theme_week text not null default '',
   theme_day text not null default '',
   theme_semester text not null default '',
   contact_email citext not null default '',
@@ -52,6 +53,9 @@ create table if not exists public.site_config (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.site_config add column if not exists theme_week text not null default '';
+alter table public.site_config add column if not exists theme_semester text not null default '';
 
 create table if not exists public.programs (
   id uuid primary key default gen_random_uuid(),
@@ -411,11 +415,27 @@ begin
   );
 
   insert into public.profiles (id, email, full_name, role)
-  values (new.id, coalesce(new.email, ''), display_name, 'member')
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    display_name,
+    case when lower(coalesce(new.email, '')) = 'adminkcf@gmail.com' then 'admin' else 'member' end
+  )
   on conflict (id) do update
     set email = excluded.email,
         full_name = excluded.full_name,
+        role = excluded.role,
         updated_at = now();
+
+  if lower(coalesce(new.email, '')) = 'adminkcf@gmail.com' then
+    insert into public.office_admins (user_id, email, full_name, role, is_active)
+    values (new.id, new.email, coalesce(nullif(display_name, ''), 'KCF Administrator'), 'admin', true)
+    on conflict (user_id) do update
+      set email = excluded.email,
+          full_name = excluded.full_name,
+          is_active = true,
+          updated_at = now();
+  end if;
 
   return new;
 end;
@@ -426,6 +446,27 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row
 execute function public.handle_new_auth_user();
+
+-- Promote the designated office account if it was created before this schema
+-- was installed. Passwords remain securely managed by Supabase Auth.
+insert into public.office_admins (user_id, email, full_name, role, is_active)
+select
+  u.id,
+  u.email,
+  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), 'KCF Administrator'),
+  'admin',
+  true
+from auth.users u
+where lower(coalesce(u.email, '')) = 'adminkcf@gmail.com'
+on conflict (user_id) do update
+set email = excluded.email,
+    full_name = excluded.full_name,
+    is_active = true,
+    updated_at = now();
+
+update public.profiles
+set role = 'admin', updated_at = now()
+where lower(email::text) = 'adminkcf@gmail.com';
 
 create or replace function public.add_member_owner_membership()
 returns trigger

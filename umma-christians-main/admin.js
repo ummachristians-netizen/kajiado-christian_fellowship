@@ -816,7 +816,8 @@ function initOfficeDashboard() {
                 document.getElementById("cfgVerseRef").value = cfg.verseReference || "";
                 document.getElementById("cfgVerseText").value = cfg.verseText || "";
                 document.getElementById("cfgYearTheme").value = cfg.themeYear || "";
-                document.getElementById("cfgDayTheme").value = cfg.themeDay || cfg.themeSemester || "";
+                document.getElementById("cfgSemesterTheme").value = cfg.themeSemester || "";
+                document.getElementById("cfgWeekTheme").value = cfg.themeWeek || cfg.themeDay || "";
                 document.getElementById("cfgContactEmail").value = cfg.contactEmail || "";
                 document.getElementById("cfgFellowshipDay").value = cfg.fellowshipDay || "";
                 document.getElementById("cfgFellowshipTime").value = cfg.fellowshipTime || "";
@@ -829,7 +830,8 @@ function initOfficeDashboard() {
                     verseReference: document.getElementById("cfgVerseRef").value.trim(),
                     verseText: document.getElementById("cfgVerseText").value.trim(),
                     themeYear: document.getElementById("cfgYearTheme").value.trim(),
-                    themeDay: document.getElementById("cfgDayTheme").value.trim(),
+                    themeSemester: document.getElementById("cfgSemesterTheme").value.trim(),
+                    themeWeek: document.getElementById("cfgWeekTheme").value.trim(),
                     contactEmail: document.getElementById("cfgContactEmail").value.trim(),
                     fellowshipDay: document.getElementById("cfgFellowshipDay").value.trim(),
                     fellowshipTime: document.getElementById("cfgFellowshipTime").value.trim(),

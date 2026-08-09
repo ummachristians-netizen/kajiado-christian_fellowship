@@ -21,7 +21,8 @@ video,iframe,svg,canvas{max-width:100%;height:auto}
 button,input,select,textarea{font:inherit}
 .main,.content,.content>*,.hero-copy,.hero-aside,.card,.glass-panel,.summary-card{min-width:0}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(247,223,149,.55);outline-offset:3px}
-.layout{display:block;position:relative;z-index:1}
+.layout{display:block;position:relative}
+body.menu-open{overflow:hidden}
 .sidebar{
   width:100%;min-height:auto;position:sticky;top:0;overflow:visible;z-index:240;padding:10px 14px;color:#fff;
   display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap;
@@ -226,9 +227,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 @media (min-width:1280px){.content{padding:0}}
 @media (max-width:1023px){
+  body.menu-open .topbar{z-index:340}
   .sidebar{
     position:fixed;inset:0 auto 0 0;z-index:320;width:min(86vw,380px);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
-    gap:22px;padding:clamp(24px,6vw,38px) clamp(20px,5vw,30px);background:#3aa0d2;backdrop-filter:blur(18px);transform:translateX(-105%);
+    gap:22px;padding:clamp(76px,14vw,92px) clamp(20px,5vw,30px) clamp(24px,6vw,38px);background:#3aa0d2;backdrop-filter:blur(18px);transform:translateX(-105%);
     transition:transform .28s ease,border-color .28s ease;overflow:auto;height:100dvh;border-bottom:0;box-shadow:20px 0 55px rgba(7,31,45,.22)
   }
   .sidebar.active{transform:translateX(0)}
@@ -238,7 +240,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .hamburger{order:2;margin-left:auto}
   .nav-links a{width:100%;justify-content:flex-start;font-size:1rem;padding:13px 16px;background:rgba(255,255,255,.12)}
   .main{margin-left:0;width:100%}
-  .overlay{z-index:300}
+  .overlay{z-index:300;background:rgba(7,25,37,.48);backdrop-filter:blur(3px)}
 }
 @media (max-width:599px){
   .sidebar{gap:10px}

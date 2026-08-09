@@ -106,10 +106,12 @@ function initSidebar() {
     const main = document.querySelector(".main");
     if (!sidebar || !hamburger || !overlay) return;
 
-    const isMobile = () => window.innerWidth <= 860;
+    const isMobile = () => window.innerWidth <= 1023;
 
     const closeMenu = () => {
         document.body.classList.remove("menu-open");
+        hamburger.setAttribute("aria-expanded", "false");
+        hamburger.setAttribute("aria-label", "Open menu");
         if (isMobile()) {
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
@@ -122,6 +124,8 @@ function initSidebar() {
 
     const openMenu = () => {
         document.body.classList.add("menu-open");
+        hamburger.setAttribute("aria-expanded", "true");
+        hamburger.setAttribute("aria-label", "Close menu");
         sidebar.classList.add("active");
         if (!isMobile()) {
             sidebar.classList.remove("closed");
@@ -134,6 +138,18 @@ function initSidebar() {
         if (sidebar.classList.contains("active")) closeMenu();
         else openMenu();
         return;
+    });
+
+    hamburger.setAttribute("aria-controls", "sidebar");
+    hamburger.setAttribute("aria-expanded", "false");
+
+    window.addEventListener("resize", () => {
+        if (!isMobile()) {
+            document.body.classList.remove("menu-open");
+            sidebar.classList.remove("active", "closed");
+            overlay.classList.remove("active");
+            hamburger.setAttribute("aria-expanded", "false");
+        }
     });
 
     overlay.addEventListener("click", () => {
@@ -242,6 +258,7 @@ function renderSiteConfig(cfg = {}) {
     const verseTextEl = document.querySelector("[data-site='verse-text']");
     const verseRefEl = document.querySelector("[data-site='verse-ref']");
     const yearThemeEl = document.querySelector("[data-site='theme-year']");
+    const weekThemeEl = document.querySelector("[data-site='theme-week']");
     const semThemeEl = document.querySelector("[data-site='theme-semester']");
     const contactEmailEl = document.querySelector("[data-site='contact-email']");
     const fellowshipDayEl = document.querySelector("[data-site='fellowship-day']");
@@ -251,6 +268,7 @@ function renderSiteConfig(cfg = {}) {
     if (verseTextEl) verseTextEl.textContent = cfg.verseText || "Verse will be published by the ministry office.";
     if (verseRefEl) verseRefEl.textContent = cfg.verseReference || "-";
     if (yearThemeEl) yearThemeEl.textContent = cfg.themeYear || "Not set yet.";
+    if (weekThemeEl) weekThemeEl.textContent = cfg.themeWeek || cfg.themeDay || "Theme will be announced soon.";
     if (semThemeEl) semThemeEl.textContent = cfg.themeSemester || cfg.themeDay || "Theme will be announced soon.";
     if (contactEmailEl) contactEmailEl.textContent = cfg.contactEmail || "Not set yet.";
     if (fellowshipDayEl) fellowshipDayEl.textContent = cfg.fellowshipDay || "Not set yet.";
