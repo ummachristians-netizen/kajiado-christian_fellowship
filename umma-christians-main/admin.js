@@ -28,6 +28,7 @@ import {
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
 const OFFICE_ADMIN_STORAGE_KEY = "kajiado-office-admin-pending";
+const DESIGNATED_ADMIN_EMAIL = "ummachristians@gmail.com";
 
 function escAttr(value) {
     return String(value ?? "")
@@ -403,6 +404,13 @@ async function ensureOfficeAdminProfile(user, preferredFullName = "") {
     const requestedName = normalizeFullName(preferredFullName);
     const displayName = requestedName || resolveOfficeAdminName("", email);
 
+    if (email === DESIGNATED_ADMIN_EMAIL) {
+        const { error: repairError } = await supabase.rpc("ensure_designated_admin");
+        if (repairError && !String(repairError.message || "").toLowerCase().includes("could not find")) {
+            throw repairError;
+        }
+    }
+
     const existing = await fetchOfficeAdminProfile(user.id);
     if (existing) {
         if (!existing.isActive) {
@@ -509,6 +517,9 @@ function initOfficeLogin() {
         if (lower.includes("invalid email")) return "Invalid email format.";
         if (lower.includes("email address") && lower.includes("invalid")) return "Invalid email format.";
         if (lower.includes("invalid login credentials")) return "Invalid email or password.";
+        if (lower.includes("could not find the function") || lower.includes("schema cache")) {
+            return "Admin database setup is outdated. Run the latest supabase-schema.sql, then try again.";
+        }
         if (lower.includes("email not confirmed")) return "Check your email to confirm the account.";
         if (lower.includes("user already registered")) return "This email is already in use.";
         if (lower.includes("password should be")) return "Password is too weak.";
