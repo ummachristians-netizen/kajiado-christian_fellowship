@@ -1,4 +1,4 @@
-const CACHE_NAME = "kcf-pwa-v2";
+const CACHE_NAME = "kcf-pwa-v3";
 const SHELL_ASSETS = [
   "./", "index.html", "membership.html", "admin-login.html", "admin.html",
   "umma.css", "membership.css", "admin.css", "script.js", "membership.js", "admin.js",
@@ -31,6 +31,20 @@ self.addEventListener("fetch", (event) => {
         : url.pathname.endsWith("membership.html") ? "membership.html" : "index.html";
       return (await caches.match(page)) || Response.error();
     }));
+    return;
+  }
+
+  const mustRefresh = ["script", "style", "worker", "manifest"].includes(request.destination)
+    || /\.(?:js|css|webmanifest)$/i.test(url.pathname);
+
+  if (mustRefresh) {
+    event.respondWith(fetch(request).then((response) => {
+      if (response.ok && response.type === "basic") {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+      }
+      return response;
+    }).catch(() => caches.match(request)));
     return;
   }
 
