@@ -1,0 +1,58 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kajiado Christian Fellowship logo">
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(600 320) rotate(90) scale(760 760)">
+      <stop offset="0" stop-color="#4a535d"/>
+      <stop offset="0.45" stop-color="#363f49"/>
+      <stop offset="1" stop-color="#1f252d"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="280" y1="430" x2="930" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7df95"/>
+      <stop offset="0.32" stop-color="#d6a53f"/>
+      <stop offset="0.65" stop-color="#9f6f1b"/>
+      <stop offset="1" stop-color="#f1cc6d"/>
+    </linearGradient>
+    <linearGradient id="goldDark" x1="280" y1="430" x2="930" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8b5e15"/>
+      <stop offset="0.5" stop-color="#6e4910"/>
+      <stop offset="1" stop-color="#d9a53a"/>
+    </linearGradient>
+    <filter id="shadow" x="120" y="260" width="960" height="720" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="softGlow" x="220" y="180" width="760" height="760" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.93 0 1 0 0 0.77 0 0 1 0 0.28 0 0 0 0.25 0"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="1200" fill="url(#bg)"/>
+  <ellipse cx="600" cy="610" rx="390" ry="240" fill="#0d1116" opacity="0.24"/>
+  <ellipse cx="600" cy="450" rx="280" ry="180" fill="url(#gold)" filter="url(#softGlow)" opacity="0.18"/>
+
+  <g filter="url(#shadow)">
+    <path d="M156 692L360 490L522 580L390 692H156Z" fill="url(#goldDark)"/>
+    <path d="M314 692L500 505L676 692H314Z" fill="url(#gold)"/>
+    <path d="M470 692L618 545L792 692H470Z" fill="url(#goldDark)"/>
+    <path d="M626 692L786 530L1012 692H626Z" fill="url(#gold)"/>
+    <path d="M351 520L479 656L441 692L296 548L351 520Z" fill="#f7e0a1" opacity="0.24"/>
+    <path d="M531 532L650 660L616 692L500 570L531 532Z" fill="#fff4cf" opacity="0.18"/>
+    <path d="M717 548L862 694H792L676 587L717 548Z" fill="#fff4cf" opacity="0.18"/>
+    <rect x="574" y="195" width="52" height="400" rx="8" fill="url(#gold)"/>
+    <rect x="479" y="286" width="242" height="52" rx="8" fill="url(#gold)"/>
+    <rect x="582" y="198" width="32" height="393" rx="6" fill="#fff6d8" opacity="0.2"/>
+  </g>
+
+  <g transform="translate(0 0)" fill="#0f1114">
+    <text x="600" y="845" text-anchor="middle" font-size="62" font-weight="800" letter-spacing="7" font-family="Arial, Helvetica, sans-serif">KAJIADO CHRISTIAN</text>
+    <rect x="188" y="880" width="235" height="4" rx="2" fill="#0f1114"/>
+    <rect x="777" y="880" width="235" height="4" rx="2" fill="#0f1114"/>
+    <text x="600" y="936" text-anchor="middle" font-size="66" font-weight="700" letter-spacing="9" font-family="Georgia, 'Times New Roman', serif">FELLOWSHIP</text>
+  </g>
+
+  <g opacity="0.18">
+    <path d="M152 694L360 490L522 580L390 692H156Z" fill="#ffffff"/>
+    <path d="M314 692L500 505L676 692H314Z" fill="#ffffff"/>
+    <path d="M470 692L618 545L792 692H470Z" fill="#ffffff"/>
+    <path d="M626 692L786 530L1012 692H626Z" fill="#ffffff"/>
+  </g>
+</svg>

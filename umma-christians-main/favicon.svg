@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kajiado Christian Fellowship favicon">
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 150) rotate(90) scale(280 280)">
+      <stop offset="0" stop-color="#4a535d"/>
+      <stop offset="0.5" stop-color="#323b44"/>
+      <stop offset="1" stop-color="#1f252d"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="120" y1="200" x2="392" y2="332" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8e3a1"/>
+      <stop offset="0.32" stop-color="#d8a943"/>
+      <stop offset="0.7" stop-color="#9b6718"/>
+      <stop offset="1" stop-color="#f3cf6c"/>
+    </linearGradient>
+    <filter id="shadow" x="60" y="100" width="392" height="320" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <rect x="243" y="83" width="26" height="168" rx="7" fill="url(#gold)"/>
+    <rect x="202" y="120" width="108" height="26" rx="7" fill="url(#gold)"/>
+    <path d="M78 295L172 200L248 243L178 295H78Z" fill="url(#gold)"/>
+    <path d="M164 295L248 212L332 295H164Z" fill="url(#gold)"/>
+    <path d="M244 295L314 224L434 295H244Z" fill="url(#gold)"/>
+    <path d="M180 220L240 286L222 295L154 230L180 220Z" fill="#fff4cf" opacity="0.18"/>
+    <path d="M278 231L336 295H314L248 240L278 231Z" fill="#fff4cf" opacity="0.18"/>
+  </g>
+  <circle cx="256" cy="252" r="152" fill="#fff8e0" opacity="0.03"/>
+</svg>

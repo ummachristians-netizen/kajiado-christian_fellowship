@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kajiado Christian Fellowship | Portal</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="membership.css">
+</head>
+<body>
+  <div class="portal-shell">
+    <main class="portal-main">
+      <section class="auth-screen" id="authScreen">
+        <section class="auth-card" id="loginPanel">
+          <div class="auth-card-head">
+            <p class="eyebrow">Member access</p>
+            <h3>Login to continue</h3>
+            <p class="section-sub">Sign in to access your member portal.</p>
+          </div>
+          <form id="loginForm" class="auth-form">
+            <label for="loginCode">Member Code or Email</label>
+            <input id="loginCode" type="text" autocomplete="username" placeholder="KCF-123456 or email" required>
+
+            <label for="loginPassword">Password</label>
+            <div class="password-field">
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required>
+              <button type="button" class="ghost-toggle" data-toggle-password="#loginPassword">Show</button>
+            </div>
+
+            <div class="row-inline">
+              <label class="checkline"><input id="rememberMe" type="checkbox"> Remember me</label>
+              <button class="link-btn" type="button" id="forgotBtn">Forgot password?</button>
+            </div>
+
+            <button class="button button-primary button-animate" type="submit">Access Member Portal</button>
+          </form>
+          <p class="auth-foot">Don't have an account? <button class="link-btn" type="button" data-view="register">Create Account</button></p>
+        </section>
+
+        <section class="auth-card hidden" id="registerPanel">
+          <div class="auth-card-head">
+            <p class="eyebrow">New member</p>
+            <h3>Register Your Organization</h3>
+            <p class="section-sub">Create your account in a few simple steps.</p>
+          </div>
+          <form id="registerForm" class="auth-form">
+            <div class="grid-2">
+              <div>
+                <label for="orgName">Organization / Church Name</label>
+                <input id="orgName" type="text" required>
+              </div>
+              <div>
+                <label for="orgType">Organization Type</label>
+                <select id="orgType" required>
+                  <option value="">Select one</option>
+                  <option>Church</option>
+                  <option>Christian Institution</option>
+                  <option>Ministry</option>
+                  <option>Christian Organization</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div><label for="location">Physical Location</label><input id="location" type="text" required></div>
+              <div><label for="county">County</label><input id="county" type="text" required></div>
+            </div>
+            <div class="grid-2">
+              <div><label for="contactName">Contact Name</label><input id="contactName" type="text" required></div>
+              <div><label for="phone">Phone Number</label><input id="phone" type="tel" required></div>
+            </div>
+            <div>
+              <label for="email">Email Address</label>
+              <input id="email" type="email" required>
+            </div>
+            <button class="button button-primary button-animate" type="submit">Register Your Organization</button>
+          </form>
+          <p class="auth-foot">Already have an account? <button class="link-btn" type="button" data-view="login">Back to Login</button></p>
+        </section>
+      </section>
+
+      <section class="dashboard-shell hidden" id="dashboardShell">
+        <header class="dashboard-top">
+          <div class="welcome-block">
+            <p class="eyebrow">Member dashboard</p>
+            <h2>Welcome back, <span id="orgWelcomeName">Organization</span></h2>
+            <p id="orgWelcomeLead">Stay connected with KCF, manage your events, and participate in fellowship activities.</p>
+          </div>
+          <div class="top-actions">
+            <a class="button button-secondary" href="event.html">View Upcoming Events</a>
+            <button class="button button-ghost" id="notificationsBtn" type="button">Notifications</button>
+            <a class="button button-secondary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join WhatsApp</a>
+            <button class="button button-ghost" id="logoutBtn" type="button">Logout</button>
+          </div>
+        </header>
+
+        <section class="summary-grid">
+          <article class="summary-card profile-card">
+            <img id="orgLogoPreview" alt="Organization logo">
+            <div>
+              <p class="eyebrow">Membership status</p>
+              <h3 id="membershipStatusText">PENDING APPROVAL</h3>
+              <p id="memberCodeText">Member ID: -</p>
+            </div>
+          </article>
+          <article class="summary-card stat-card"><span>Upcoming Events</span><strong id="statUpcoming">0</strong></article>
+          <article class="summary-card stat-card"><span>Polls Available</span><strong id="statPolls">0</strong></article>
+        </section>
+
+        <nav class="dash-nav">
+          <button class="dash-tab active" type="button" data-section="overview">Dashboard</button>
+          <button class="dash-tab" type="button" data-section="events">Events</button>
+          <button class="dash-tab" type="button" data-section="create">Create Event</button>
+          <button class="dash-tab" type="button" data-section="profile">My Organization</button>
+        </nav>
+
+        <section class="dash-section active" id="overviewSection">
+          <div class="panel-grid">
+            <article class="glass-panel">
+              <p class="eyebrow">Organization details</p>
+              <div class="detail-list" id="overviewDetails"></div>
+            </article>
+            <article class="glass-panel">
+              <p class="eyebrow">Notifications</p>
+              <div id="notificationFeed" class="feed-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="dash-section" id="eventsSection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Events</p>
+              <h3>Community events and attendance polls</h3>
+            </div>
+            <button class="button button-primary" id="openCreateEventBtn" type="button">Create Your First Event</button>
+          </div>
+          <div id="eventsSkeleton" class="skeleton-list"></div>
+          <div id="eventsFeed" class="events-grid"></div>
+        </section>
+
+        <section class="dash-section" id="createSection">
+          <article class="glass-panel">
+            <p class="eyebrow">Create event</p>
+            <h3>Post a member event</h3>
+            <form id="eventForm" class="auth-form compact-form">
+              <div class="grid-2">
+                <div><label for="eventTitle">Event title</label><input id="eventTitle" required></div>
+                <div><label for="eventCategory">Category</label><select id="eventCategory" required><option value="">Select one</option><option>Church Event</option><option>Institution Event</option><option>KCF Event</option><option>Ministry Event</option></select></div>
+              </div>
+              <div><label for="eventDescription">Description</label><textarea id="eventDescription" rows="4" required></textarea></div>
+              <div class="grid-3">
+                <div><label for="eventDate">Date</label><input id="eventDate" type="date" required></div>
+                <div><label for="eventStart">Start Time</label><input id="eventStart" type="time" required></div>
+                <div><label for="eventEnd">End Time</label><input id="eventEnd" type="time" required></div>
+              </div>
+              <div class="grid-2">
+                <div><label for="eventVenue">Venue</label><input id="eventVenue" required></div>
+                <div><label for="eventOrganizer">Organizer</label><input id="eventOrganizer" required></div>
+              </div>
+              <div class="grid-2">
+                <div><label for="eventContact">Contact information</label><input id="eventContact" required></div>
+                <div><label for="eventBanner">Event image/banner URL</label><input id="eventBanner" type="url" placeholder="Optional"></div>
+              </div>
+              <div><label for="eventLink">Registration link</label><input id="eventLink" type="url" placeholder="Optional"></div>
+              <button class="button button-primary" type="submit">Publish Event</button>
+            </form>
+          </article>
+        </section>
+
+        <section class="dash-section" id="profileSection">
+          <article class="glass-panel">
+            <p class="eyebrow">My organization</p>
+            <h3>Manage your profile</h3>
+            <form id="profileForm" class="auth-form compact-form">
+              <div class="grid-2">
+                <div><label for="profileName">Organization name</label><input id="profileName" required></div>
+                <div><label for="profileType">Organization type</label><input id="profileType" required></div>
+              </div>
+              <div class="grid-2">
+                <div><label for="profileContact">Contact person</label><input id="profileContact" required></div>
+                <div><label for="profilePhone">Phone</label><input id="profilePhone" required></div>
+              </div>
+              <div class="grid-2">
+                <div><label for="profileEmail">Email</label><input id="profileEmail" type="email" required></div>
+                <div><label for="profileLocation">Location</label><input id="profileLocation" required></div>
+              </div>
+              <div class="grid-2">
+                <div><label for="profileWebsite">Website</label><input id="profileWebsite" type="url"></div>
+                <div><label for="profileLogo">Logo URL</label><input id="profileLogo" type="url"></div>
+              </div>
+              <div><label for="profileDescription">Description</label><textarea id="profileDescription" rows="4"></textarea></div>
+              <button class="button button-primary" type="submit">Update Profile</button>
+            </form>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="successModal">
+    <div class="modal-backdrop" data-close-success></div>
+    <section class="modal-card">
+      <button class="modal-close" type="button" data-close-success>&times;</button>
+      <div class="success-mark">✓</div>
+      <p class="eyebrow">KCF Membership</p>
+      <h3 id="successTitle">Registration Submitted Successfully!</h3>
+      <p id="successText">Welcome to KCF. Your membership application has been received.</p>
+      <div class="success-grid">
+        <div><span>Organization</span><strong id="successOrg">-</strong></div>
+        <div><span>Member ID / Code</span><strong id="successCode">-</strong></div>
+        <div><span>Status</span><strong>Pending Approval</strong></div>
+      </div>
+      <p class="muted">Stay connected with KCF announcements, events, fellowship updates and important information.</p>
+      <div class="modal-actions">
+        <a class="button button-primary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join WhatsApp Channel →</a>
+        <button class="button button-ghost" id="continuePortalBtn" type="button">Continue to Member Portal</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="drawer hidden" id="notificationsDrawer">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel">
+      <div class="drawer-head">
+        <h3>Notifications</h3>
+        <button class="modal-close" type="button" data-close-drawer>&times;</button>
+      </div>
+      <div id="drawerFeed" class="feed-list"></div>
+    </aside>
+  </div>
+
+  <div class="drawer hidden" id="eventDrawer">
+    <div class="drawer-backdrop" data-close-event-drawer></div>
+    <aside class="drawer-panel drawer-wide">
+      <div class="drawer-head">
+        <h3>Create Event</h3>
+        <button class="modal-close" type="button" data-close-event-drawer>&times;</button>
+      </div>
+      <form id="eventDrawerForm" class="auth-form compact-form">
+        <div class="grid-2">
+          <div><label for="drawerEventTitle">Event title</label><input id="drawerEventTitle" required></div>
+          <div><label for="drawerEventCategory">Category</label><select id="drawerEventCategory" required><option value="">Select one</option><option>Church Event</option><option>Institution Event</option><option>KCF Event</option><option>Ministry Event</option></select></div>
+        </div>
+        <div><label for="drawerEventDescription">Description</label><textarea id="drawerEventDescription" rows="4" required></textarea></div>
+        <div class="grid-3">
+          <div><label for="drawerEventDate">Date</label><input id="drawerEventDate" type="date" required></div>
+          <div><label for="drawerEventStart">Start Time</label><input id="drawerEventStart" type="time" required></div>
+          <div><label for="drawerEventEnd">End Time</label><input id="drawerEventEnd" type="time" required></div>
+        </div>
+        <div class="grid-2">
+          <div><label for="drawerEventVenue">Venue</label><input id="drawerEventVenue" required></div>
+          <div><label for="drawerEventOrganizer">Organizer</label><input id="drawerEventOrganizer" required></div>
+        </div>
+        <div class="grid-2">
+          <div><label for="drawerEventContact">Contact information</label><input id="drawerEventContact" required></div>
+          <div><label for="drawerEventBanner">Event image/banner URL</label><input id="drawerEventBanner" type="url"></div>
+        </div>
+        <div><label for="drawerEventLink">Registration link</label><input id="drawerEventLink" type="url"></div>
+        <button class="button button-primary" type="submit">Publish Event</button>
+      </form>
+    </aside>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <nav class="bottom-nav" aria-label="Member navigation">
+    <button type="button" data-section="overview">Dashboard</button>
+    <button type="button" data-section="events">Events</button>
+    <button type="button" data-section="create">Create</button>
+    <button type="button" id="mobileNotificationBtn">Alerts</button>
+    <button type="button" data-section="profile">Profile</button>
+  </nav>
+  <script src="runtime-config.js"></script>
+  <script type="module" src="membership.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+    }
+  </script>
+</body>
+</html>
