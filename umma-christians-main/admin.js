@@ -29,6 +29,15 @@ import {
 const MAX_IMAGE_BYTES = 1024 * 1024;
 const OFFICE_ADMIN_STORAGE_KEY = "kajiado-office-admin-pending";
 const DESIGNATED_ADMIN_EMAIL = "ummachristians@gmail.com";
+const OFFICE_AUTH_ERROR_KEY = "kajiado-office-auth-error";
+
+function withTimeout(promise, message, timeoutMs = 12000) {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
 
 function escAttr(value) {
     return String(value ?? "")
@@ -499,6 +508,8 @@ function initOfficeLogin() {
     const status = document.getElementById("loginStatus");
     const createBtn = document.getElementById("createAccountBtn");
     const resetBtn = document.getElementById("resetPasswordBtn");
+    let loginSubmissionActive = false;
+    let redirectActive = false;
 
     const showStatus = (message, isError = false) => {
         if (!status) return;
@@ -508,6 +519,12 @@ function initOfficeLogin() {
 
     if (!hasSupabaseConfig) {
         showStatus("Supabase is not configured yet. Set SUPABASE_URL and SUPABASE_ANON_KEY in runtime-config.js or Vercel.", true);
+    }
+
+    const previousError = sessionStorage.getItem(OFFICE_AUTH_ERROR_KEY);
+    if (previousError) {
+        sessionStorage.removeItem(OFFICE_AUTH_ERROR_KEY);
+        showStatus(previousError, true);
     }
 
     const mapAuthError = (error) => {
@@ -531,21 +548,26 @@ function initOfficeLogin() {
     };
 
     onAuthStateChanged(auth, (user) => {
-        if (!user) return;
+        if (!user || loginSubmissionActive || redirectActive) return;
 
-        void (async () => {
+        window.setTimeout(() => void (async () => {
             try {
+                redirectActive = true;
                 const pending = getPendingOfficeAdminRegistration();
-                const profile = await ensureOfficeAdminProfile(user, pending?.fullName || "");
+                const profile = await withTimeout(
+                    ensureOfficeAdminProfile(user, pending?.fullName || ""),
+                    "Admin authorization timed out. Run the latest Supabase SQL and try again."
+                );
                 clearPendingOfficeAdminRegistration();
                 showStatus(`Welcome${profile?.fullName ? `, ${profile.fullName}` : ""}.`);
-                window.location.href = "admin.html";
+                window.location.replace("admin.html");
             } catch (error) {
+                redirectActive = false;
                 clearPendingOfficeAdminRegistration();
                 await signOut(auth).catch(() => {});
                 showStatus(mapOfficeAdminError(error) || mapAuthError(error), true);
             }
-        })();
+        })(), 0);
     });
 
     loginForm.addEventListener("submit", async (e) => {
@@ -555,18 +577,28 @@ function initOfficeLogin() {
         const fullName = document.getElementById("adminFullName").value.trim();
         const loginBtn = loginForm.querySelector("button[type='submit']");
         try {
+            loginSubmissionActive = true;
             if (loginBtn) loginBtn.disabled = true;
             showStatus("Signing in...");
             await setPersistence(auth, browserLocalPersistence);
-            const result = await signInWithEmailAndPassword(auth, email, password);
+            const result = await withTimeout(
+                signInWithEmailAndPassword(auth, email, password),
+                "Sign-in timed out. Check your connection and try again."
+            );
             const user = result?.user || result?.data?.user || null;
-            await ensureOfficeAdminProfile(user, fullName || getPendingOfficeAdminRegistration()?.fullName || "");
+            showStatus("Verifying administrator access...");
+            await withTimeout(
+                ensureOfficeAdminProfile(user, fullName || getPendingOfficeAdminRegistration()?.fullName || ""),
+                "Admin authorization timed out. Run the latest Supabase SQL and try again."
+            );
             clearPendingOfficeAdminRegistration();
-            window.location.href = "admin.html";
+            redirectActive = true;
+            window.location.replace("admin.html");
         } catch (error) {
             await signOut(auth).catch(() => {});
             showStatus(mapOfficeAdminError(error) || mapAuthError(error), true);
         } finally {
+            loginSubmissionActive = false;
             if (loginBtn) loginBtn.disabled = false;
         }
     });
@@ -1044,19 +1076,24 @@ function initOfficeDashboard() {
             return;
         }
 
-        void (async () => {
+        window.setTimeout(() => void (async () => {
             try {
                 const pending = getPendingOfficeAdminRegistration();
-                const profile = await ensureOfficeAdminProfile(user, pending?.fullName || "");
+                const profile = await withTimeout(
+                    ensureOfficeAdminProfile(user, pending?.fullName || ""),
+                    "Admin authorization timed out. Run the latest Supabase SQL and try again."
+                );
                 clearPendingOfficeAdminRegistration();
                 mountWorkspace(profile, user);
             } catch (error) {
                 clearPendingOfficeAdminRegistration();
-                setStatus(mapOfficeAdminError(error) || "Office access is not available for this account.", true);
+                const message = mapOfficeAdminError(error) || String(error?.message || "Office access is not available for this account.");
+                setStatus(message, true);
+                sessionStorage.setItem(OFFICE_AUTH_ERROR_KEY, message);
                 await signOut(auth).catch(() => {});
-                window.location.href = "admin-login.html";
+                window.location.replace("admin-login.html");
             }
-        })();
+        })(), 0);
     });
 }
 
