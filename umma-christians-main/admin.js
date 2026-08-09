@@ -28,7 +28,6 @@ import {
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
 const OFFICE_ADMIN_STORAGE_KEY = "kajiado-office-admin-pending";
-const DESIGNATED_ADMIN_EMAIL = "ummachristians@gmail.com";
 const OFFICE_AUTH_ERROR_KEY = "kajiado-office-auth-error";
 
 function withTimeout(promise, message, timeoutMs = 12000) {
@@ -413,13 +412,8 @@ async function ensureOfficeAdminProfile(user, preferredFullName = "") {
     const requestedName = normalizeFullName(preferredFullName);
     const displayName = requestedName || resolveOfficeAdminName("", email);
 
-    if (email === DESIGNATED_ADMIN_EMAIL) {
-        const { error: repairError } = await supabase.rpc("ensure_designated_admin");
-        if (repairError && !String(repairError.message || "").toLowerCase().includes("could not find")) {
-            throw repairError;
-        }
-    }
-
+    // Authorization is determined by the active server-side office_admins row.
+    // Account repair belongs in the SQL migration, not in the login redirect.
     const existing = await fetchOfficeAdminProfile(user.id);
     if (existing) {
         if (!existing.isActive) {
@@ -560,7 +554,7 @@ function initOfficeLogin() {
                 );
                 clearPendingOfficeAdminRegistration();
                 showStatus(`Welcome${profile?.fullName ? `, ${profile.fullName}` : ""}.`);
-                window.location.replace("admin.html");
+                window.location.replace(new URL("admin.html", window.location.href).href);
             } catch (error) {
                 redirectActive = false;
                 clearPendingOfficeAdminRegistration();
@@ -593,7 +587,7 @@ function initOfficeLogin() {
             );
             clearPendingOfficeAdminRegistration();
             redirectActive = true;
-            window.location.replace("admin.html");
+            window.location.replace(new URL("admin.html", window.location.href).href);
         } catch (error) {
             await signOut(auth).catch(() => {});
             showStatus(mapOfficeAdminError(error) || mapAuthError(error), true);
