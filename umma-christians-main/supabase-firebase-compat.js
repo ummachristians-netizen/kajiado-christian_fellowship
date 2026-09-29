@@ -774,13 +774,14 @@ export function onAuthStateChanged(_auth, callback) {
     };
 }
 
-export async function createUserWithEmailAndPassword(_auth, email, password) {
+export async function createUserWithEmailAndPassword(_auth, email, password, options = {}) {
     const client = ensureSupabase();
     const { data, error } = await client.auth.signUp({
         email,
         password,
         options: {
-            emailRedirectTo: authRedirect()
+            emailRedirectTo: authRedirect(),
+            data: options.data || undefined
         }
     });
     if (error) throw error;

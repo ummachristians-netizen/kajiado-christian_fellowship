@@ -78,6 +78,37 @@ function makeMemberCode() {
   return `KCF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function memberProfileFromForm(userId, email) {
+  return {
+    userId,
+    code: makeMemberCode(),
+    name: $("orgName").value.trim(),
+    type: $("orgType").value,
+    location: $("location").value.trim(),
+    county: $("county").value.trim(),
+    contactName: $("contactName").value.trim(),
+    phone: $("phone").value.trim(),
+    email,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+}
+
+async function createProfileFromAuthMetadata(user) {
+  const saved = user?.user_metadata?.kcf_member;
+  if (!user || !saved || !normalize(saved.name) || !normalize(saved.type)) return null;
+  const profile = {
+    ...saved,
+    userId: user.id,
+    email: String(user.email || saved.email || "").trim().toLowerCase(),
+    code: normalize(saved.code) || makeMemberCode(),
+    status: normalize(saved.status) || "pending",
+    createdAt: saved.createdAt || new Date().toISOString()
+  };
+  await saveProfile(profile);
+  return profile;
+}
+
 function requireFields(ids) {
   for (const id of ids) {
     if (!normalize($(id)?.value).length) return false;
@@ -287,15 +318,14 @@ function attachCommonHandlers() {
 
 async function loginMember(codeOrEmail, password) {
   const normalized = normalize(codeOrEmail);
-  const email = normalized.includes("@") ? normalized : (await findProfileByCodeOrEmail(normalized))?.email;
-  if (!email) throw new Error("Member profile not found.");
-  const result = await signInWithEmailAndPassword(auth, email, password);
+  if (!normalized.includes("@")) throw new Error("Please sign in with the email address used for registration.");
+  const result = await signInWithEmailAndPassword(auth, normalized.toLowerCase(), password);
   state.user = result.user;
 }
 
 function canAccessPortal(profile) {
   const status = normalize(profile?.status).toLowerCase();
-  return status === "active" || status === "approved";
+  return status !== "suspended" && status !== "rejected";
 }
 
 async function handleRegister(event) {
@@ -310,34 +340,25 @@ async function handleRegister(event) {
   const email = $("email").value.trim().toLowerCase();
   state.registering = true;
   try {
-    const authResult = await createUserWithEmailAndPassword(auth, email, password);
+    const registrationData = memberProfileFromForm("", email);
+    const authResult = await createUserWithEmailAndPassword(auth, email, password, { data: { kcf_member: registrationData } });
+    if (!authResult.user) throw new Error("Account creation did not return a user.");
     state.user = authResult.user;
-    const profile = {
-      userId: authResult.user.id,
-      code: makeMemberCode(),
-      name: $("orgName").value.trim(),
-      type: $("orgType").value,
-      location: $("location").value.trim(),
-      county: $("county").value.trim(),
-      contactName: $("contactName").value.trim(),
-      phone: $("phone").value.trim(),
-      email,
-      status: "pending",
-      createdAt: new Date().toISOString()
-    };
-    await saveProfile(profile);
-    renderProfile(profile);
-    await signOut(auth);
+    const profile = { ...registrationData, userId: authResult.user.id };
+    if (authResult.session) {
+      await saveProfile(profile);
+      await signOut(auth);
+    }
     state.user = null;
     showSuccess(profile);
     setAuthView("login");
     $("loginCode").value = email;
     $("loginPassword").value = "";
     $("registerForm").reset();
-    showToast("Registration successful! Welcome to KCF.");
+    showToast(authResult.session ? "Registration successful. You can now sign in." : "Registration received. Check your email to confirm your account, then sign in.");
   } catch (error) {
     console.error(error);
-    showToast("Your registration could not be completed.");
+    showToast(String(error?.message || "").toLowerCase().includes("already registered") ? "This email already has an account. Confirm it from your inbox, then sign in or reset the password." : (error?.message || "Your registration could not be completed."));
   } finally {
     state.registering = false;
   }
@@ -351,14 +372,15 @@ async function handleLogin(event) {
     else localStorage.removeItem("kcf-member-login");
     await loginMember($("loginCode").value, $("loginPassword").value);
     state.profile = await loadProfile();
+    if (!state.profile) state.profile = await createProfileFromAuthMetadata(state.user);
     if (!state.profile) {
       await signOut(auth);
-      showToast("Member profile not found.");
+      showToast("Your account exists, but its organization registration is incomplete. Please contact KCF office for assistance.");
       return;
     }
     if (!canAccessPortal(state.profile)) {
       await signOut(auth);
-      showToast("Your organization is pending approval. Please wait for KCF to approve your account before login.");
+      showToast("This organization account is not currently permitted to sign in.");
       return;
     }
     renderProfile(state.profile);
@@ -371,7 +393,7 @@ async function handleLogin(event) {
     renderNotifications();
   } catch (error) {
     console.error(error);
-    showToast("Invalid member credentials.");
+    showToast(error?.message || "Invalid email or password.");
   }
 }
 
@@ -467,6 +489,9 @@ document.addEventListener("DOMContentLoaded", () => {
     state.user = user;
     if (!user) return;
     state.profile = await loadProfile();
+    if (!state.profile) {
+      try { state.profile = await createProfileFromAuthMetadata(user); } catch (error) { console.error("Unable to complete member profile", error); }
+    }
     if (state.profile && canAccessPortal(state.profile)) {
       renderProfile(state.profile);
       $("authScreen")?.classList.add("hidden");
