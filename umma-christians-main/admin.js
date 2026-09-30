@@ -412,8 +412,13 @@ async function ensureOfficeAdminProfile(user, preferredFullName = "") {
     const requestedName = normalizeFullName(preferredFullName);
     const displayName = requestedName || resolveOfficeAdminName("", email);
 
-    // Authorization is determined by the active server-side office_admins row.
-    // Account repair belongs in the SQL migration, not in the login redirect.
+    // The designated KCF account is provisioned server-side. A direct insert
+    // is blocked by RLS once an office administrator already exists.
+    if (email === "adminkcf@gmail.com") {
+        const { error: provisionError } = await supabase.rpc("ensure_designated_admin");
+        if (provisionError) throw provisionError;
+    }
+
     const existing = await fetchOfficeAdminProfile(user.id);
     if (existing) {
         if (!existing.isActive) {
