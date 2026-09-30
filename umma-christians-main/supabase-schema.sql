@@ -358,7 +358,7 @@ begin
     raise exception 'Authentication is required';
   end if;
 
-  if lower(signed_in_email::text) <> 'ummachristians@gmail.com' then
+  if lower(signed_in_email::text) <> 'adminkcf@gmail.com' then
     raise exception 'This account is not the designated KCF administrator';
   end if;
 
@@ -460,7 +460,7 @@ begin
     new.id,
     coalesce(new.email, ''),
     display_name,
-    case when lower(coalesce(new.email, '')) = 'ummachristians@gmail.com' then 'admin' else 'member' end
+    case when lower(coalesce(new.email, '')) = 'adminkcf@gmail.com' then 'admin' else 'member' end
   )
   on conflict (id) do update
     set email = excluded.email,
@@ -468,7 +468,7 @@ begin
         role = excluded.role,
         updated_at = now();
 
-  if lower(coalesce(new.email, '')) = 'ummachristians@gmail.com' then
+  if lower(coalesce(new.email, '')) = 'adminkcf@gmail.com' then
     insert into public.office_admins (user_id, email, full_name, role, is_active)
     values (new.id, new.email, coalesce(nullif(display_name, ''), 'KCF Administrator'), 'admin', true)
     on conflict (user_id) do update
@@ -498,7 +498,7 @@ select
   'admin',
   true
 from auth.users u
-where lower(coalesce(u.email, '')) = 'ummachristians@gmail.com'
+where lower(coalesce(u.email, '')) = 'adminkcf@gmail.com'
 on conflict (user_id) do update
 set email = excluded.email,
     full_name = excluded.full_name,
@@ -507,7 +507,7 @@ set email = excluded.email,
 
 update public.profiles
 set role = 'admin', updated_at = now()
-where lower(email::text) = 'ummachristians@gmail.com';
+where lower(email::text) = 'adminkcf@gmail.com';
 
 create or replace function public.add_member_owner_membership()
 returns trigger
