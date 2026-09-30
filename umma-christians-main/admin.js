@@ -27,6 +27,7 @@ import {
 const MAX_IMAGE_BYTES = 1024 * 1024;
 const OFFICE_ADMIN_STORAGE_KEY = "kajiado-office-admin-pending";
 const OFFICE_AUTH_ERROR_KEY = "kajiado-office-auth-error";
+const DESIGNATED_ADMIN_EMAIL = "adminkcf@gmail.com";
 
 function withTimeout(promise, message, timeoutMs = 12000) {
     let timeoutId;
@@ -401,86 +402,46 @@ async function ensureOfficeAdminProfile(user, preferredFullName = "") {
     if (!supabase) {
         throw new Error("Supabase is not configured yet. Set SUPABASE_URL and SUPABASE_ANON_KEY in runtime-config.js or Vercel.");
     }
-
-    if (!user?.id) {
-        throw new Error("Missing authenticated user.");
-    }
+    if (!user?.id) throw new Error("Missing authenticated user.");
 
     const email = normalizeEmail(user.email);
+    // Only the database can bootstrap the designated office account. This keeps
+    // role assignment out of the browser and avoids RLS-blocked client inserts.
+    if (email === DESIGNATED_ADMIN_EMAIL) {
+        const { error } = await supabase.rpc("ensure_designated_admin");
+        if (error) throw error;
+    }
+
+    const profile = await fetchOfficeAdminProfile(user.id);
+    if (!profile) {
+        throw new Error("This account is authenticated but is not authorized for the KCF office dashboard.");
+    }
+    if (profile.role !== "admin" || !profile.isActive) {
+        throw new Error("This office account is inactive or does not have administrator access.");
+    }
+
     const requestedName = normalizeFullName(preferredFullName);
-    const displayName = requestedName || resolveOfficeAdminName("", email);
-
-    // The designated KCF account is provisioned server-side. A direct insert
-    // is blocked by RLS once an office administrator already exists.
-    if (email === "adminkcf@gmail.com") {
-        const { error: provisionError } = await supabase.rpc("ensure_designated_admin");
-        if (provisionError) throw provisionError;
+    if (requestedName && requestedName !== profile.fullName) {
+        const { data, error } = await supabase
+            .from("office_admins")
+            .update({ full_name: requestedName, updated_at: new Date().toISOString() })
+            .eq("user_id", user.id)
+            .select("*")
+            .maybeSingle();
+        if (error) throw error;
+        return data ? mapOfficeAdminRow(data) : profile;
     }
-
-    const existing = await fetchOfficeAdminProfile(user.id);
-    if (existing) {
-        if (!existing.isActive) {
-            throw new Error("This office account is inactive. Contact the ministry office.");
-        }
-
-        const updatePayload = {};
-        if (requestedName && requestedName !== existing.fullName) {
-            updatePayload.full_name = requestedName;
-        }
-        if (email && email !== existing.email) {
-            updatePayload.email = email;
-        }
-
-        if (Object.keys(updatePayload).length > 0) {
-            updatePayload.updated_at = new Date().toISOString();
-            const { data, error } = await supabase
-                .from("office_admins")
-                .update(updatePayload)
-                .eq("user_id", user.id)
-                .select("*")
-                .maybeSingle();
-
-            if (error) throw error;
-            return data ? mapOfficeAdminRow(data) : existing;
-        }
-
-        return existing;
-    }
-
-    const { data, error } = await supabase
-        .from("office_admins")
-        .insert({
-            user_id: user.id,
-            email: email || user.email || "",
-            full_name: displayName,
-            role: "admin",
-            is_active: true
-        })
-        .select("*")
-        .maybeSingle();
-
-    if (error) {
-        const message = String(error?.message || error || "").toLowerCase();
-        if (message.includes("office admin limit") || message.includes("maximum 10") || message.includes("limit reached")) {
-            throw new Error("Office admin limit reached. Maximum 10 active admins are allowed.");
-        }
-        if (message.includes("duplicate") || message.includes("unique")) {
-            const duplicate = await fetchOfficeAdminProfile(user.id);
-            if (duplicate) return duplicate;
-            throw new Error("This office email is already linked to another admin account.");
-        }
-        throw error;
-    }
-
-    return data ? mapOfficeAdminRow(data) : null;
+    return profile;
 }
-
 function mapOfficeAdminError(error) {
     const message = String(error?.message || error || "");
     const lower = message.toLowerCase();
 
     if (lower.includes("office admin limit") || lower.includes("maximum 10") || lower.includes("limit reached")) {
         return "Office admin limit reached. Maximum 10 active admins are allowed.";
+    }
+    if (lower.includes("not authorized") || lower.includes("does not have administrator access")) {
+        return "This account is not authorized for the KCF office dashboard.";
     }
     if (lower.includes("inactive")) {
         return "This office account is inactive. Contact the ministry office.";
@@ -574,6 +535,10 @@ function initOfficeLogin() {
         const password = document.getElementById("adminPassword").value;
         const fullName = document.getElementById("adminFullName")?.value.trim() || "";
         const loginBtn = loginForm.querySelector("button[type='submit']");
+        if (!email || !password) {
+            showStatus("Enter your office email and password.", true);
+            return;
+        }
         try {
             loginSubmissionActive = true;
             if (loginBtn) loginBtn.disabled = true;
@@ -584,6 +549,7 @@ function initOfficeLogin() {
                 "Sign-in timed out. Check your connection and try again."
             );
             const user = result?.user || result?.data?.user || null;
+            if (!result?.session || !user?.id) throw new Error("Sign-in did not create a valid session. Please try again.");
             showStatus("Verifying administrator access...");
             await withTimeout(
                 ensureOfficeAdminProfile(user, fullName || getPendingOfficeAdminRegistration()?.fullName || ""),
