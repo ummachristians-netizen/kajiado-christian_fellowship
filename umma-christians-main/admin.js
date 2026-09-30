@@ -493,6 +493,9 @@ function mapOfficeAdminError(error) {
     if (lower.includes("row-level security") || lower.includes("permission denied") || lower.includes("not authorized")) {
         return "Supabase blocked this office action. Check the office_admins and admin table policies.";
     }
+    if (lower.includes("could not find the function") || lower.includes("schema cache") || lower.includes("ensure_designated_admin")) {
+        return "Admin database setup is incomplete. Run the latest supabase-schema.sql in the deployed Supabase project, then try again.";
+    }
     if (lower.includes("missing authenticated user")) {
         return "Sign in again to continue.";
     }

@@ -366,7 +366,7 @@ async function handleRegister(event) {
 
 async function handleLogin(event) {
   event.preventDefault();
-  if (!normalize($("loginCode").value) || !normalize($("loginPassword").value)) return showToast("Enter your member code/email and password.");
+  if (!normalize($("loginCode").value) || !normalize($("loginPassword").value)) return showToast("Enter your registration email and password.");
   try {
     if ($("rememberMe")?.checked) localStorage.setItem("kcf-member-login", normalize($("loginCode").value));
     else localStorage.removeItem("kcf-member-login");
@@ -488,9 +488,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.registering) return;
     state.user = user;
     if (!user) return;
-    state.profile = await loadProfile();
-    if (!state.profile) {
-      try { state.profile = await createProfileFromAuthMetadata(user); } catch (error) { console.error("Unable to complete member profile", error); }
+    try {
+      state.profile = await loadProfile();
+      if (!state.profile) state.profile = await createProfileFromAuthMetadata(user);
+    } catch (error) {
+      console.error("Unable to load member profile", error);
+      showToast("Your account signed in, but the member database is not ready. Please contact KCF office.");
+      await signOut(auth).catch(() => {});
+      state.user = null;
+      return;
     }
     if (state.profile && canAccessPortal(state.profile)) {
       renderProfile(state.profile);

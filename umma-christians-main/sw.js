@@ -1,9 +1,9 @@
-const CACHE_NAME = "kcf-pwa-v5";
+const CACHE_NAME = "kcf-pwa-v6";
 const SHELL_ASSETS = [
   "./", "index.html", "membership.html", "admin-login.html", "admin.html", "reset-password.html",
   "umma.css", "membership.css", "admin.css", "script.js", "membership.js", "admin.js", "reset-password.js",
   "supabase-firebase-compat.js", "supabase-config.js", "runtime-config.js",
-  "logo.svg", "favicon.svg", "manifest.webmanifest",
+  "logo.svg", "favicon.svg", "site.webmanifest", "manifest.webmanifest",
   "member-manifest.webmanifest", "admin-manifest.webmanifest"
 ];
 
