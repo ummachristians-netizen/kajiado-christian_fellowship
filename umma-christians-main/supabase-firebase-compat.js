@@ -465,7 +465,9 @@ function buildDocSnapshot(id, row) {
 function buildRtdbSnapshot(value) {
     return {
         exists: () => value !== null && value !== undefined,
-        val: () => value
+        val: () => value,
+        // Keep the Firestore-compatible API available for get() callers.
+        data: () => value || undefined
     };
 }
 
