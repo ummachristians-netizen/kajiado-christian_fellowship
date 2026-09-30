@@ -994,7 +994,7 @@ function initOfficeDashboard() {
 
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            window.location.href = "admin-login.html";
+            window.location.replace(new URL("admin-login.html", window.location.href).href);
             return;
         }
 

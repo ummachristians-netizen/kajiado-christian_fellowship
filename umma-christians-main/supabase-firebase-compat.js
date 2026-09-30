@@ -767,11 +767,33 @@ export function onAuthStateChanged(_auth, callback) {
     }
 
     const client = ensureSupabase();
+    let initializing = true;
+    let pendingUser;
     const { data } = client.auth.onAuthStateChange((_event, session) => {
-        callback(session?.user || null);
+        const user = session?.user || null;
+        if (initializing) {
+            pendingUser = user;
+            return;
+        }
+        callback(user);
+    });
+
+    // Resolve stored auth state before notifying page guards. Otherwise a
+    // transient null can redirect a persisted user away during refresh.
+    client.auth.getSession().then(({ data: sessionData, error }) => {
+        if (error) throw error;
+        if (!initializing) return;
+        initializing = false;
+        callback(pendingUser === undefined ? sessionData.session?.user || null : pendingUser);
+    }).catch((error) => {
+        if (!initializing) return;
+        initializing = false;
+        console.error("Unable to restore Supabase auth session.", error);
+        callback(null);
     });
 
     return () => {
+        initializing = false;
         data.subscription.unsubscribe();
     };
 }
