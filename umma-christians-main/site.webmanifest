@@ -1,0 +1,12 @@
+{
+  "name": "Kajiado Christian Fellowship",
+  "short_name": "KCF",
+  "description": "Faith. Fellowship. Mission.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b1f33",
+  "theme_color": "#0b1f33",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
