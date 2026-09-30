@@ -3,7 +3,6 @@ import {
     addDoc,
     browserLocalPersistence,
     collection,
-    createUserWithEmailAndPassword,
     deleteDoc,
     doc,
     get,
@@ -16,7 +15,6 @@ import {
     query,
     ref as dbRef,
     remove,
-    sendPasswordResetEmail,
     set,
     setDoc,
     setPersistence,
@@ -508,8 +506,6 @@ function initOfficeLogin() {
     if (!loginForm) return;
 
     const status = document.getElementById("loginStatus");
-    const createBtn = document.getElementById("createAccountBtn");
-    const resetBtn = document.getElementById("resetPasswordBtn");
     let loginSubmissionActive = false;
     let redirectActive = false;
 
@@ -605,49 +601,7 @@ function initOfficeLogin() {
         }
     });
 
-    if (createBtn) {
-        createBtn.addEventListener("click", async () => {
-            const email = document.getElementById("adminEmail").value.trim();
-            const password = document.getElementById("adminPassword").value;
-            const fullName = document.getElementById("adminFullName")?.value.trim() || "";
-            if (!email || !password) {
-                showStatus("Enter email and password first.", true);
-                return;
-            }
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-                const result = await createUserWithEmailAndPassword(auth, email, password);
-                const user = result?.user || result?.data?.user || null;
-                if (result?.session) {
-                    await ensureOfficeAdminProfile(user, fullName || email);
-                    clearPendingOfficeAdminRegistration();
-                    showStatus("Office account created and signed in.");
-                    window.location.href = "admin.html";
-                    return;
-                }
-                savePendingOfficeAdminRegistration(email, fullName);
-                showStatus("Office account created. Check the confirmation email before signing in.");
-            } catch (error) {
-                showStatus(mapOfficeAdminError(error) || mapAuthError(error), true);
-            }
-        });
-    }
 
-    if (resetBtn) {
-        resetBtn.addEventListener("click", async () => {
-            const email = document.getElementById("adminEmail").value.trim();
-            if (!email) {
-                showStatus("Enter your office email first to reset password.", true);
-                return;
-            }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showStatus("Secure password recovery link sent. Check your inbox and spam folder.");
-            } catch (error) {
-                showStatus(mapAuthError(error), true);
-            }
-        });
-    }
 }
 
 function initOfficeDashboard() {
