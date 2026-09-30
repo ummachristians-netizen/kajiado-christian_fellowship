@@ -1,4 +1,4 @@
-const CACHE_NAME = "kcf-pwa-v6";
+const CACHE_NAME = "kcf-pwa-v7";
 const SHELL_ASSETS = [
   "./", "index.html", "membership.html", "admin-login.html", "admin.html", "reset-password.html",
   "umma.css", "membership.css", "admin.css", "script.js", "membership.js", "admin.js", "reset-password.js",
