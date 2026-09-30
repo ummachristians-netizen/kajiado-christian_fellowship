@@ -576,7 +576,7 @@ function initOfficeLogin() {
         e.preventDefault();
         const email = document.getElementById("adminEmail").value.trim();
         const password = document.getElementById("adminPassword").value;
-        const fullName = document.getElementById("adminFullName").value.trim();
+        const fullName = document.getElementById("adminFullName")?.value.trim() || "";
         const loginBtn = loginForm.querySelector("button[type='submit']");
         try {
             loginSubmissionActive = true;
@@ -609,7 +609,7 @@ function initOfficeLogin() {
         createBtn.addEventListener("click", async () => {
             const email = document.getElementById("adminEmail").value.trim();
             const password = document.getElementById("adminPassword").value;
-            const fullName = document.getElementById("adminFullName").value.trim();
+            const fullName = document.getElementById("adminFullName")?.value.trim() || "";
             if (!email || !password) {
                 showStatus("Enter email and password first.", true);
                 return;
