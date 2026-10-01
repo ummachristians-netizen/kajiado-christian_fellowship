@@ -201,6 +201,8 @@ alter table if exists public.events add column if not exists time text not null 
 alter table if exists public.events add column if not exists category text not null default 'General';
 alter table if exists public.events add column if not exists host_name text not null default 'Kajiado Christian Fellowship';
 alter table if exists public.events add column if not exists host_type text not null default 'KCF';
+alter table if exists public.events add column if not exists image_url text not null default '';
+notify pgrst, 'reload schema';
 alter table if exists public.events add column if not exists poll_yes integer not null default 0;
 alter table if exists public.events add column if not exists poll_no integer not null default 0;
 alter table if exists public.events add column if not exists start_time text not null default '';

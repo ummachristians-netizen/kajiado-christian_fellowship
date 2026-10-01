@@ -824,9 +824,13 @@ function initOfficeDashboard() {
                     if (uploadedPath) await supabase.storage.from("event-images").remove([uploadedPath]).catch(() => {});
                     console.error("Unable to publish event.", error);
                     const detail = String(error?.message || "");
-                    setEventFormStatus(detail.toLowerCase().includes("bucket")
-                        ? "Event image storage is not set up. Apply the latest Supabase schema and confirm the event-images bucket exists."
-                        : "Event was not published: " + (detail || "Check your connection and try again."), true);
+                    const lowerDetail = detail.toLowerCase();
+                    const eventError = lowerDetail.includes("image_url")
+                        ? "The Supabase events table is missing image_url. Run the events image_url migration from supabase-schema.sql in Supabase SQL Editor, then retry."
+                        : lowerDetail.includes("bucket")
+                            ? "Event image storage is not set up. Apply the latest Supabase schema and confirm the event-images bucket exists."
+                            : "Event was not published: " + (detail || "Check your connection and try again.");
+                    setEventFormStatus(eventError, true);
                 } finally {
                     if (submitButton) submitButton.disabled = false;
                 }
