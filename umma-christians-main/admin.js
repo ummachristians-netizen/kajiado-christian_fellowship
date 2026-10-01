@@ -693,20 +693,24 @@ function initOfficeDashboard() {
                 .join("");
         }, (error) => setStatus("Events could not be loaded: " + (error?.message || "Check Supabase access."), true));
 
+        const renderMemberActions = (id, status) => {
+            const action = status === "active"
+                ? `<button class="btn btn-outline" data-member-status="suspended" data-member-id="${id}" type="button">Suspend</button>`
+                : `<button class="btn btn-primary" data-member-status="active" data-member-id="${id}" type="button">Approve</button>`;
+            const reject = status === "rejected" ? "" : ` <button class="btn btn-danger" data-member-status="rejected" data-member-id="${id}" type="button">Reject</button>`;
+            return `${action}${reject}`;
+        };
         onSnapshot(query(collection(db, "members"), orderBy("createdAt", "desc")), (snap) => {
             if (!membersList) return;
             if (snap.empty) {
                 membersList.innerHTML = "<li>No membership applications yet.</li>";
                 return;
             }
+
             membersList.innerHTML = snap.docs.map((record) => {
                 const member = record.data();
                 const status = String(member.status || "pending").toLowerCase();
-                const action = status === "active"
-                    ? `<button class="btn btn-outline" data-member-status="suspended" data-member-id="${record.id}" type="button">Suspend</button>`
-                    : `<button class="btn btn-primary" data-member-status="active" data-member-id="${record.id}" type="button">Approve</button>`;
-                const reject = status === "rejected" ? "" : ` <button class="btn btn-danger" data-member-status="rejected" data-member-id="${record.id}" type="button">Reject</button>`;
-                return `<li><strong>${escAttr(member.name || "Unnamed organization")}</strong><div class="event-meta"><span>${escAttr(member.type || "Organization")}</span><span>${escAttr(member.contactName || "")}</span><span>${escAttr(member.email || "")}</span><span class="chip">${escAttr(status.toUpperCase())}</span></div><p>${escAttr(member.location || member.town || "Location not provided")}</p>${action}${reject}</li>`;
+                return `<li data-member-row="${record.id}"><strong>${escAttr(member.name || "Unnamed organization")}</strong><div class="event-meta"><span>${escAttr(member.type || "Organization")}</span><span>${escAttr(member.contactName || "")}</span><span>${escAttr(member.email || "")}</span><span class="chip" data-member-status-label>${escAttr(status.toUpperCase())}</span></div><p>${escAttr(member.location || member.town || "Location not provided")}</p><div class="member-approval-actions">${renderMemberActions(record.id, status)}</div></li>`;
             }).join("");
         }, (error) => setStatus("Membership applications could not be loaded: " + (error?.message || "Check Supabase access."), true));
 
@@ -926,8 +930,20 @@ function initOfficeDashboard() {
                         .maybeSingle();
                     if (error) throw error;
                     if (!data) throw new Error("Supabase updated no row. Verify this admin account is active in office_admins and that the members update policy is installed.");
-                    setStatus("Membership status changed to " + nextStatus + ".");
-                    await logActivity("Changed membership " + id + " to " + nextStatus, "membership");
+                    const savedStatus = String(data.membership_status || "").toLowerCase();
+                    if (savedStatus !== nextStatus) {
+                        throw new Error("The database returned membership status '" + (savedStatus || "empty") + "' instead of '" + nextStatus + "'. Refresh and check the members table migration.");
+                    }
+
+                    // Realtime may be disabled, so show the server-confirmed status immediately.
+                    const memberRow = memberStatusBtn.closest("[data-member-row]");
+                    const statusLabel = memberRow?.querySelector("[data-member-status-label]");
+                    const actions = memberRow?.querySelector(".member-approval-actions");
+                    if (statusLabel) statusLabel.textContent = savedStatus.toUpperCase();
+                    if (actions) actions.innerHTML = renderMemberActions(id, savedStatus);
+
+                    setStatus("Membership status changed to " + savedStatus + ".");
+                    await logActivity("Changed membership " + id + " to " + savedStatus, "membership");
                 } catch (error) {
                     console.error("Membership approval update failed.", error);
                     const detail = String(error?.message || error || "Unknown Supabase error");
