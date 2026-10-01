@@ -437,11 +437,17 @@ function watchEvents() {
     onSnapshot(query(collection(db, "events"), orderBy("date", "asc")), (snap) => {
         feeds.kcf = snap.docs.map((document) => ({ id: document.id, ...document.data(), sourceType: "kcf" }));
         render();
+    }, (error) => {
+        console.error("KCF events could not be loaded.", error);
+        showPageToast("KCF events could not load. Please try again later.");
     });
 
     onSnapshot(query(collection(db, "member_events"), orderBy("date", "asc")), (snap) => {
         feeds.members = snap.docs.map((document) => ({ id: document.id, ...document.data() }));
         render();
+    }, (error) => {
+        console.error("Member events could not be loaded.", error);
+        showPageToast("Member events could not load. Please try again later.");
     });
 }
 function watchGallery() {

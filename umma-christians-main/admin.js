@@ -306,6 +306,7 @@ async function compressImageTo1MB(file) {
     }
 
     if (!outputBlob) throw new Error("Failed to compress image.");
+    if (outputBlob.size > MAX_IMAGE_BYTES) throw new Error("Image remains larger than 1 MB after compression.");
 
     const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
     const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
@@ -690,7 +691,7 @@ function initOfficeDashboard() {
                     return `<li><strong>${e.title || ""}</strong><div class="event-meta"><span>${formatHumanDate(e.date || "")}</span><span>${e.time || ""}</span><span>${e.location || ""}</span><span class="chip">${e.category || "General"}</span></div><p>${e.description || ""}</p><button class="btn btn-outline" data-edit-event="${d.id}" data-title="${escAttr(e.title)}" data-date="${escAttr(e.date)}" data-time="${escAttr(e.time)}" data-location="${escAttr(e.location)}" data-category="${escAttr(e.category)}" data-description="${escAttr(e.description)}" type="button">Edit</button> <button class="btn btn-danger" data-delete-event="${d.id}" type="button">Delete Event</button></li>`;
                 })
                 .join("");
-        });
+        }, (error) => setStatus("Events could not be loaded: " + (error?.message || "Check Supabase access."), true));
 
         onSnapshot(query(collection(db, "members"), orderBy("createdAt", "desc")), (snap) => {
             if (!membersList) return;
@@ -707,7 +708,7 @@ function initOfficeDashboard() {
                 const reject = status === "rejected" ? "" : ` <button class="btn btn-danger" data-member-status="rejected" data-member-id="${record.id}" type="button">Reject</button>`;
                 return `<li><strong>${escAttr(member.name || "Unnamed organization")}</strong><div class="event-meta"><span>${escAttr(member.type || "Organization")}</span><span>${escAttr(member.contactName || "")}</span><span>${escAttr(member.email || "")}</span><span class="chip">${escAttr(status.toUpperCase())}</span></div><p>${escAttr(member.location || member.town || "Location not provided")}</p>${action}${reject}</li>`;
             }).join("");
-        }, () => setStatus("Membership applications could not be loaded.", true));
+        }, (error) => setStatus("Membership applications could not be loaded: " + (error?.message || "Check Supabase access."), true));
 
         onValue(dbRef(rtdb, "gallery"), (snap) => {
             if (!photosList) return;
@@ -770,19 +771,53 @@ function initOfficeDashboard() {
         if (addEventForm) {
             addEventForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
-                const payload = {
-                    title: document.getElementById("eventTitle").value.trim(),
-                    date: document.getElementById("eventDate").value,
-                    time: document.getElementById("eventTime").value.trim(),
-                    location: document.getElementById("eventLocation").value.trim(),
-                    category: document.getElementById("eventCategory").value.trim() || "General",
-                    description: document.getElementById("eventDescription").value.trim(),
-                    createdAt: Date.now()
-                };
-                await addDoc(collection(db, "events"), payload);
-                addEventForm.reset();
-                setStatus("Event added.");
-                await logActivity(`Added event: ${payload.title}`, "event");
+                const submitButton = addEventForm.querySelector("button[type='submit']");
+                const fileInput = document.getElementById("eventImage");
+                const imageFile = fileInput?.files?.[0];
+                if (!imageFile) {
+                    setStatus("Choose an event image before saving.", true);
+                    fileInput?.focus();
+                    return;
+                }
+                if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(imageFile.type)) {
+                    setStatus("Choose a JPEG, PNG, WebP, or GIF image.", true);
+                    return;
+                }
+                let uploadedPath = "";
+                try {
+                    if (submitButton) submitButton.disabled = true;
+                    setStatus("Preparing event image...");
+                    const compressedImage = await compressImageTo1MB(imageFile);
+                    const eventId = crypto.randomUUID();
+                    uploadedPath = eventId + "/" + Date.now() + "-" + compressedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+                    const upload = await supabase.storage.from("event-images").upload(uploadedPath, compressedImage, { contentType: compressedImage.type, upsert: false });
+                    if (upload.error) throw upload.error;
+                    const imageData = supabase.storage.from("event-images").getPublicUrl(uploadedPath).data;
+                    const payload = {
+                        title: document.getElementById("eventTitle").value.trim(),
+                        date: document.getElementById("eventDate").value,
+                        time: document.getElementById("eventTime").value.trim(),
+                        location: document.getElementById("eventLocation").value.trim(),
+                        category: document.getElementById("eventCategory").value.trim() || "General",
+                        description: document.getElementById("eventDescription").value.trim(),
+                        imageUrl: imageData.publicUrl,
+                        createdAt: Date.now()
+                    };
+                    setStatus("Saving event...");
+                    await addDoc(collection(db, "events"), payload);
+                    addEventForm.reset();
+                    setStatus("Event published. The public Events page will show it shortly.");
+                    await logActivity("Added event: " + payload.title, "event");
+                } catch (error) {
+                    if (uploadedPath) await supabase.storage.from("event-images").remove([uploadedPath]).catch(() => {});
+                    console.error("Unable to publish event.", error);
+                    const detail = String(error?.message || "");
+                    setStatus(detail.toLowerCase().includes("bucket")
+                        ? "Event image storage is not set up. Apply the latest Supabase schema and confirm the event-images bucket exists."
+                        : "Event was not published: " + (detail || "Check your connection and try again."), true);
+                } finally {
+                    if (submitButton) submitButton.disabled = false;
+                }
             });
         }
 
@@ -875,11 +910,24 @@ function initOfficeDashboard() {
                 if (!id || !nextStatus) return;
                 memberStatusBtn.disabled = true;
                 try {
-                    await updateDoc(doc(db, "members", id), { status: nextStatus, updatedAt: Date.now() });
-                    setStatus(`Membership status changed to ${nextStatus}.`);
-                    await logActivity(`Changed membership ${id} to ${nextStatus}`, "membership");
+                    const { data, error } = await supabase
+                        .from("members")
+                        .update({ membership_status: nextStatus, updated_at: new Date().toISOString() })
+                        .eq("id", id)
+                        .select("id, membership_status")
+                        .maybeSingle();
+                    if (error) throw error;
+                    if (!data) throw new Error("Supabase updated no row. Verify this admin account is active in office_admins and that the members update policy is installed.");
+                    setStatus("Membership status changed to " + nextStatus + ".");
+                    await logActivity("Changed membership " + id + " to " + nextStatus, "membership");
                 } catch (error) {
-                    setStatus("Membership status could not be changed.", true);
+                    console.error("Membership approval update failed.", error);
+                    const detail = String(error?.message || error || "Unknown Supabase error");
+                    const lower = detail.toLowerCase();
+                    const guidance = lower.includes("row-level security") || lower.includes("permission denied") || lower.includes("updated no row")
+                        ? " Check that this signed-in user is an active office admin and run the latest supabase-schema.sql."
+                        : "";
+                    setStatus("Membership status could not be changed: " + detail + guidance, true);
                     memberStatusBtn.disabled = false;
                 }
                 return;

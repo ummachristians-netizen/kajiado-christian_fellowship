@@ -553,6 +553,31 @@ begin
           updated_at = now();
   end if;
 
+  -- Persist applications at signup, including accounts awaiting email confirmation.
+  if jsonb_typeof(new.raw_user_meta_data -> 'kcf_member') = 'object'
+    and nullif(btrim(new.raw_user_meta_data #>> '{kcf_member,name}'), '') is not null
+    and nullif(btrim(new.raw_user_meta_data #>> '{kcf_member,contactName}'), '') is not null
+    and lower(coalesce(new.email, '')) <> 'adminkcf@gmail.com'
+    and coalesce(new.raw_user_meta_data #>> '{kcf_member,type}', '') in (
+      'Church', 'Christian Institution', 'Ministry', 'Christian Organization'
+    ) then
+    insert into public.members (
+      id, user_id, member_code, organization_name, organization_type,
+      contact_name, email, phone, physical_location, county, membership_status
+    ) values (
+      new.id, new.id,
+      coalesce(nullif(new.raw_user_meta_data #>> '{kcf_member,code}', ''), 'KCF-' || upper(substr(replace(new.id::text, '-', ''), 1, 6))),
+      btrim(new.raw_user_meta_data #>> '{kcf_member,name}'),
+      new.raw_user_meta_data #>> '{kcf_member,type}',
+      btrim(new.raw_user_meta_data #>> '{kcf_member,contactName}'),
+      coalesce(new.email, ''),
+      coalesce(new.raw_user_meta_data #>> '{kcf_member,phone}', ''),
+      coalesce(new.raw_user_meta_data #>> '{kcf_member,location}', ''),
+      coalesce(new.raw_user_meta_data #>> '{kcf_member,county}', ''),
+      'pending'
+    ) on conflict (user_id) do nothing;
+  end if;
+
   return new;
 end;
 $$;
@@ -562,6 +587,32 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row
 execute function public.handle_new_auth_user();
+
+-- Recover registration metadata from existing auth accounts when available.
+insert into public.members (
+  id, user_id, member_code, organization_name, organization_type,
+  contact_name, email, phone, physical_location, county, membership_status
+)
+select
+  u.id, u.id,
+  coalesce(nullif(u.raw_user_meta_data #>> '{kcf_member,code}', ''), 'KCF-' || upper(substr(replace(u.id::text, '-', ''), 1, 6))),
+  btrim(u.raw_user_meta_data #>> '{kcf_member,name}'),
+  u.raw_user_meta_data #>> '{kcf_member,type}',
+  btrim(u.raw_user_meta_data #>> '{kcf_member,contactName}'),
+  coalesce(u.email, ''),
+  coalesce(u.raw_user_meta_data #>> '{kcf_member,phone}', ''),
+  coalesce(u.raw_user_meta_data #>> '{kcf_member,location}', ''),
+  coalesce(u.raw_user_meta_data #>> '{kcf_member,county}', ''),
+  'pending'
+from auth.users u
+where jsonb_typeof(u.raw_user_meta_data -> 'kcf_member') = 'object'
+  and nullif(btrim(u.raw_user_meta_data #>> '{kcf_member,name}'), '') is not null
+  and nullif(btrim(u.raw_user_meta_data #>> '{kcf_member,contactName}'), '') is not null
+  and lower(coalesce(u.email, '')) <> 'adminkcf@gmail.com'
+  and coalesce(u.raw_user_meta_data #>> '{kcf_member,type}', '') in (
+    'Church', 'Christian Institution', 'Ministry', 'Christian Organization'
+  )
+on conflict (user_id) do nothing;
 
 -- Promote the designated office account if it was created before this schema
 -- was installed. Passwords remain securely managed by Supabase Auth.
@@ -843,6 +894,14 @@ to authenticated
 using (user_id = auth.uid() or public.is_admin())
 with check (user_id = auth.uid() or public.is_admin());
 
+drop policy if exists "Admins update members" on public.members;
+create policy "Admins update members"
+on public.members
+for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
 drop policy if exists "Admins manage members" on public.members;
 create policy "Admins manage members"
 on public.members
@@ -1102,6 +1161,24 @@ with check (
   and email = public.current_user_email()
   and not public.has_office_admin()
 );
+
+-- Public event images are written only by authenticated office administrators.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('event-images', 'event-images', true, 1048576, array['image/jpeg','image/png','image/webp','image/gif'])
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 1048576,
+  allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif'];
+
+drop policy if exists "Public read event images" on storage.objects;
+create policy "Public read event images" on storage.objects
+for select to public using (bucket_id = 'event-images');
+
+drop policy if exists "Admins manage event images" on storage.objects;
+create policy "Admins manage event images" on storage.objects
+for all to authenticated
+using (bucket_id = 'event-images' and public.is_admin())
+with check (bucket_id = 'event-images' and public.is_admin());
 
 commit;
 

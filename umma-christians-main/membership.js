@@ -325,7 +325,15 @@ async function loginMember(codeOrEmail, password) {
 
 function canAccessPortal(profile) {
   const status = normalize(profile?.status).toLowerCase();
-  return status !== "suspended" && status !== "rejected";
+  return status === "active";
+}
+
+function memberAccessMessage(profile) {
+  const status = normalize(profile?.status).toLowerCase();
+  if (status === "pending") return "Your membership application is waiting for KCF office approval.";
+  if (status === "suspended") return "This organization account is suspended. Contact KCF office for assistance.";
+  if (status === "rejected") return "This organization application was not approved. Contact KCF office for assistance.";
+  return "This organization account is not currently permitted to sign in.";
 }
 
 async function handleRegister(event) {
@@ -380,7 +388,7 @@ async function handleLogin(event) {
     }
     if (!canAccessPortal(state.profile)) {
       await signOut(auth);
-      showToast("This organization account is not currently permitted to sign in.");
+      showToast(memberAccessMessage(state.profile));
       return;
     }
     renderProfile(state.profile);
@@ -508,11 +516,13 @@ document.addEventListener("DOMContentLoaded", () => {
       renderEvents();
       renderNotifications();
     } else {
+      const accessMessage = state.profile ? memberAccessMessage(state.profile) : "Complete your membership registration before signing in.";
       await signOut(auth);
       state.user = null;
       $("authScreen")?.classList.remove("hidden");
       $("dashboardShell")?.classList.add("hidden");
       $("bottomNav")?.classList.add("hidden");
+      showToast(accessMessage);
     }
   });
 });

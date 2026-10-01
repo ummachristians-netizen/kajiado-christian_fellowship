@@ -655,12 +655,6 @@ export function onSnapshot(refLike, next, error) {
             next(buildCollectionSnapshot(rows));
         } catch (err) {
             if (typeof error === "function") error(err);
-            if (cancelled) return;
-            if (isDoc) {
-                next(buildDocSnapshot(refLike?.id || "", null));
-            } else {
-                next(buildCollectionSnapshot([]));
-            }
         }
     };
 

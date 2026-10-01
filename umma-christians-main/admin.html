@@ -88,6 +88,10 @@
                         <label for="eventDescription">Description</label>
                         <textarea id="eventDescription" rows="3" placeholder="Brief event description"></textarea>
 
+                        <label for="eventImage">Event Image</label>
+                        <input type="file" id="eventImage" accept="image/jpeg,image/png,image/webp,image/gif" required>
+                        <small>Upload a JPEG, PNG, WebP, or GIF image (maximum 1 MB after compression).</small>
+
                         <button class="btn btn-primary" type="submit">Save Event</button>
                     </form>
                 </article>
@@ -182,7 +186,7 @@
 </div>
 <div class="office-overlay" id="officeOverlay"></div>
 <script src="runtime-config.js"></script>
-<script type="module" src="admin.js?v=10"></script>
+<script type="module" src="admin.js?v=11"></script>
 <script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
