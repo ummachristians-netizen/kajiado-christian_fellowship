@@ -66,20 +66,9 @@
                 </article>
             </section>
 
-            <article class="card office-section" id="eventsSection">
-                <h2>Manage Events</h2>
-                <ul class="list" id="eventsList"></ul>
-            </article>
-
-            <article class="card office-section" id="membersSection">
-                <h2>Membership Approvals</h2>
-                <p>Review every new church, institution, ministry, or organization before portal access is granted.</p>
-                <ul class="list" id="adminMembersList"><li>Loading membership applications...</li></ul>
-            </article>
-
-            <section class="grid-2 office-section" id="themesSection">
+            <section class="grid-2 office-section" id="eventsSection">
                 <article class="card admin-panel">
-                    <h3>Add Event</h3>
+                    <h2>Add Event</h2>
                     <form id="addEventForm">
                         <label for="eventTitle">Event Title</label>
                         <input type="text" id="eventTitle" required>
@@ -102,6 +91,21 @@
                         <button class="btn btn-primary" type="submit">Save Event</button>
                     </form>
                 </article>
+
+                <article class="card admin-panel">
+                    <h2>Manage Events</h2>
+                    <ul class="list" id="eventsList"></ul>
+                </article>
+            </section>
+
+            <article class="card office-section" id="membersSection">
+                <h2>Membership Approvals</h2>
+                <p>Review every new church, institution, ministry, or organization before portal access is granted.</p>
+                <ul class="list" id="adminMembersList"><li>Loading membership applications...</li></ul>
+            </article>
+
+            <section class="office-section" id="themesSection">
+
 
                 <article class="card admin-panel">
                     <h3>Update Verse and Themes</h3>
@@ -178,7 +182,7 @@
 </div>
 <div class="office-overlay" id="officeOverlay"></div>
 <script src="runtime-config.js"></script>
-<script type="module" src="admin.js?v=7"></script>
+<script type="module" src="admin.js?v=10"></script>
 <script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
