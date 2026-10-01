@@ -772,21 +772,29 @@ function initOfficeDashboard() {
             addEventForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 const submitButton = addEventForm.querySelector("button[type='submit']");
+                const setEventFormStatus = (message, isError = false) => {
+                    setStatus(message, isError);
+                    const inlineStatus = document.getElementById("eventFormStatus");
+                    if (inlineStatus) {
+                        inlineStatus.textContent = message;
+                        inlineStatus.style.color = isError ? "#b3261e" : "#0f4c81";
+                    }
+                };
                 const fileInput = document.getElementById("eventImage");
                 const imageFile = fileInput?.files?.[0];
                 if (!imageFile) {
-                    setStatus("Choose an event image before saving.", true);
+                    setEventFormStatus("Choose an event image before saving.", true);
                     fileInput?.focus();
                     return;
                 }
                 if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(imageFile.type)) {
-                    setStatus("Choose a JPEG, PNG, WebP, or GIF image.", true);
+                    setEventFormStatus("Choose a JPEG, PNG, WebP, or GIF image.", true);
                     return;
                 }
                 let uploadedPath = "";
                 try {
                     if (submitButton) submitButton.disabled = true;
-                    setStatus("Preparing event image...");
+                    setEventFormStatus("Preparing event image...");
                     const compressedImage = await compressImageTo1MB(imageFile);
                     const eventId = crypto.randomUUID();
                     uploadedPath = eventId + "/" + Date.now() + "-" + compressedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -803,16 +811,16 @@ function initOfficeDashboard() {
                         imageUrl: imageData.publicUrl,
                         createdAt: Date.now()
                     };
-                    setStatus("Saving event...");
+                    setEventFormStatus("Saving event...");
                     await addDoc(collection(db, "events"), payload);
                     addEventForm.reset();
-                    setStatus("Event published. The public Events page will show it shortly.");
+                    setEventFormStatus("Event published. The public Events page will show it shortly.");
                     await logActivity("Added event: " + payload.title, "event");
                 } catch (error) {
                     if (uploadedPath) await supabase.storage.from("event-images").remove([uploadedPath]).catch(() => {});
                     console.error("Unable to publish event.", error);
                     const detail = String(error?.message || "");
-                    setStatus(detail.toLowerCase().includes("bucket")
+                    setEventFormStatus(detail.toLowerCase().includes("bucket")
                         ? "Event image storage is not set up. Apply the latest Supabase schema and confirm the event-images bucket exists."
                         : "Event was not published: " + (detail || "Check your connection and try again."), true);
                 } finally {

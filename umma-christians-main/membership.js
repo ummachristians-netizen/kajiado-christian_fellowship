@@ -173,8 +173,8 @@ function renderProfile(profile) {
   if ($("profileLogo")) $("profileLogo").value = safe.logoUrl || "";
   if ($("profileDescription")) $("profileDescription").value = safe.description || "";
 
-  $("statPosted").textContent = String(state.events.filter((item) => item.memberId === state.user.id).length);
-  $("statResponses").textContent = String(state.responses.length);
+  if ($("statPosted")) $("statPosted").textContent = String(state.events.filter((item) => item.memberId === state.user.id).length);
+  if ($("statResponses")) $("statResponses").textContent = String(state.responses.length);
   $("statPolls").textContent = String(state.events.length);
   $("statUpcoming").textContent = String(state.events.filter((item) => new Date(item.date) >= new Date()).length);
 }
