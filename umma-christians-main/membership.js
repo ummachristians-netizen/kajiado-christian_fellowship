@@ -329,6 +329,7 @@ function attachCommonHandlers() {
     window.location.reload();
   });
   $("notificationsBtn")?.addEventListener("click", () => openDrawer("notificationsDrawer"));
+  $("drawerNotificationsBtn")?.addEventListener("click", () => { closeAppDrawer(); openDrawer("notificationsDrawer"); });
   $("mobileNotificationBtn")?.addEventListener("click", () => openDrawer("notificationsDrawer"));
   $("appMenuBtn")?.addEventListener("click", openAppDrawer);
   document.querySelectorAll("[data-close-app-drawer]").forEach((button) => button.addEventListener("click", closeAppDrawer));

@@ -96,13 +96,6 @@
             <p id="orgWelcomeLead">Stay connected with KCF, manage your events, and participate in fellowship activities.</p>
           </div>
           <button class="button button-ghost app-menu-trigger" id="appMenuBtn" type="button" aria-controls="memberAppDrawer" aria-expanded="false" aria-label="Open portal menu"><span aria-hidden="true">&#9776;</span></button>
-          <div class="top-actions">
-
-            <a class="button button-secondary" href="event.html">View Upcoming Events</a>
-            <button class="button button-ghost" id="notificationsBtn" type="button">Notifications</button>
-            <a class="button button-secondary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join WhatsApp</a>
-            <button class="button button-ghost" id="logoutBtn" type="button">Logout</button>
-          </div>
         </header>
 
         <section class="summary-grid">
@@ -290,7 +283,8 @@
         <button type="button" data-section="profile"><span aria-hidden="true">◉</span>My organization</button>
       </nav>
       <p class="app-drawer-label">STAY CONNECTED</p>
-      <a class="app-drawer-link" href="event.html"><span aria-hidden="true">↗</span>Public events</a>
+      <a class="app-drawer-link" href="event.html"><span aria-hidden="true">↗</span>View upcoming events</a>
+      <button class="app-drawer-link" id="drawerNotificationsBtn" type="button"><span aria-hidden="true">&#9823;</span>Notifications</button>
       <a class="app-drawer-link" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◎</span>KCF WhatsApp channel</a>
       <div class="app-drawer-footer"><span>Signed in as</span><strong id="drawerMemberName">Member organization</strong><button type="button" id="drawerLogoutBtn">Log out</button></div>
     </aside>
