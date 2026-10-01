@@ -12,7 +12,9 @@ const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || process.env.VITE
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(appDistDir, { recursive: true });
 fs.cpSync(sourceDir, appDistDir, { recursive: true });
-fs.copyFileSync(path.join(rootDir, "index.html"), path.join(distDir, "index.html"));
+const homeHtml = fs.readFileSync(path.join(sourceDir, "index.html"), "utf8")
+    .replace("<head>", "<head>\n  <base href=\"/umma-christians-main/\">");
+fs.writeFileSync(path.join(distDir, "index.html"), homeHtml, "utf8");
 fs.copyFileSync(path.join(rootDir, "sitemap.xml"), path.join(distDir, "sitemap.xml"));
 fs.copyFileSync(path.join(rootDir, "robots.txt"), path.join(distDir, "robots.txt"));
 
