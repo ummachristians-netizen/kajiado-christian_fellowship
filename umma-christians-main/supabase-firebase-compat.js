@@ -576,6 +576,12 @@ export function ref(rtdb, path) {
     };
 }
 
+export function push(refLike) {
+    const basePath = normalizeRefPath(baseRefPath(refLike));
+    if (!basePath) throw new Error("Missing database reference.");
+    return ref(refLike, `${basePath}/${createId()}`);
+}
+
 export async function addDoc(collectionRef, payload) {
     const table = collectionRef?.table;
     if (!table) throw new Error("Missing collection reference.");
