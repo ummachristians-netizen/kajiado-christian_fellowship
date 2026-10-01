@@ -207,6 +207,81 @@ alter table if exists public.events add column if not exists start_time text not
 alter table if exists public.events add column if not exists end_time text not null default '';
 alter table if exists public.events alter column start_time type text using start_time::text;
 alter table if exists public.events alter column end_time type text using end_time::text;
+-- Public attendance poll for KCF events. Votes are recorded once per browser ID
+-- and event; clients cannot update event counters directly.
+create table if not exists public.event_poll_votes (
+  event_id uuid not null references public.events(id) on delete cascade,
+  voter_id uuid not null,
+  vote_choice text not null check (vote_choice in ('yes', 'no')),
+  created_at timestamptz not null default now(),
+  primary key (event_id, voter_id)
+);
+
+create or replace function public.cast_event_poll_vote(
+  p_event_id uuid,
+  p_voter_id uuid,
+  p_vote_choice text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_yes integer;
+  current_no integer;
+  saved_choice text;
+  was_already_voted boolean := false;
+begin
+  if p_voter_id is null or p_vote_choice is null or p_vote_choice not in ('yes', 'no') then
+    raise exception 'A valid voter and poll choice are required';
+  end if;
+
+  if not exists (
+    select 1 from public.events e
+    where e.id = p_event_id and e.status = 'published'
+  ) then
+    raise exception 'This event is not open for voting';
+  end if;
+
+  insert into public.event_poll_votes (event_id, voter_id, vote_choice)
+  values (p_event_id, p_voter_id, p_vote_choice)
+  on conflict (event_id, voter_id) do nothing;
+
+  if found then
+    was_already_voted := false;
+    update public.events e
+    set poll_yes = e.poll_yes + case when p_vote_choice = 'yes' then 1 else 0 end,
+        poll_no = e.poll_no + case when p_vote_choice = 'no' then 1 else 0 end,
+        updated_at = now()
+    where e.id = p_event_id and e.status = 'published'
+    returning e.poll_yes, e.poll_no into current_yes, current_no;
+
+    if not found then
+      raise exception 'This event is not open for voting';
+    end if;
+    saved_choice := p_vote_choice;
+  else
+    was_already_voted := true;
+    select v.vote_choice into saved_choice
+    from public.event_poll_votes v
+    where v.event_id = p_event_id and v.voter_id = p_voter_id;
+
+    select e.poll_yes, e.poll_no into current_yes, current_no
+    from public.events e where e.id = p_event_id;
+  end if;
+
+  return jsonb_build_object(
+    'poll_yes', current_yes,
+    'poll_no', current_no,
+    'vote_choice', saved_choice,
+    'already_voted', was_already_voted
+  );
+end;
+$$;
+
+revoke all on function public.cast_event_poll_vote(uuid, uuid, text) from public;
+grant execute on function public.cast_event_poll_vote(uuid, uuid, text) to anon, authenticated;
 
 create table if not exists public.member_events (
   id uuid primary key default gen_random_uuid(),
@@ -632,6 +707,7 @@ alter table public.profiles enable row level security;
 alter table public.members enable row level security;
 alter table public.organization_memberships enable row level security;
 alter table public.events enable row level security;
+alter table public.event_poll_votes enable row level security;
 alter table public.member_events enable row level security;
 alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
@@ -660,6 +736,7 @@ grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.members to authenticated;
 grant select, insert, update, delete on public.organization_memberships to authenticated;
 grant select, insert, update, delete on public.events to authenticated;
+revoke all on public.event_poll_votes from public, anon, authenticated;
 grant select, insert, update, delete on public.member_events to authenticated;
 grant select, insert, update, delete on public.polls to authenticated;
 grant select, insert, update, delete on public.poll_options to authenticated;

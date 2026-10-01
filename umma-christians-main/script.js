@@ -1,4 +1,4 @@
-import { auth, db, rtdb } from "./firebase-config.js";
+import { auth, db, rtdb, supabase } from "./firebase-config.js";
 import {
     addDoc,
     collection,
@@ -228,32 +228,76 @@ function formatHumanDate(dateString) {
     });
 }
 
+const EVENT_VOTES_STORAGE_KEY = "kcf-event-polls-v2";
+const EVENT_VOTER_ID_STORAGE_KEY = "kcf-event-poll-voter-id";
+let cachedEventPollVoterId = "";
+
 function loadEventVotes() {
     try {
-        return JSON.parse(localStorage.getItem("kcf-event-polls") || "{}");
+        return JSON.parse(localStorage.getItem(EVENT_VOTES_STORAGE_KEY) || "{}");
     } catch (_) {
         return {};
     }
 }
 
 function saveEventVotes(votes) {
-    localStorage.setItem("kcf-event-polls", JSON.stringify(votes));
+    try {
+        localStorage.setItem(EVENT_VOTES_STORAGE_KEY, JSON.stringify(votes));
+    } catch (_) {
+        // Supabase remains the authoritative vote record if browser storage is disabled.
+    }
+}
+
+function createEventPollVoterId() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+    else bytes.forEach((_, index) => { bytes[index] = Math.floor(Math.random() * 256); });
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function getEventPollVoterId() {
+    if (cachedEventPollVoterId) return cachedEventPollVoterId;
+    try {
+        const stored = localStorage.getItem(EVENT_VOTER_ID_STORAGE_KEY);
+        if (stored && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored)) {
+            cachedEventPollVoterId = stored;
+            return stored;
+        }
+    } catch (_) {
+        // Use an in-memory voter ID when storage is disabled.
+    }
+    cachedEventPollVoterId = createEventPollVoterId();
+    try {
+        localStorage.setItem(EVENT_VOTER_ID_STORAGE_KEY, cachedEventPollVoterId);
+    } catch (_) {
+        // Poll submission still works for this page session.
+    }
+    return cachedEventPollVoterId;
 }
 
 async function voteOnEvent(eventId, voteType) {
+    if (!supabase) throw new Error("Event poll service is not configured.");
+    if (voteType !== "yes" && voteType !== "no") throw new Error("Choose Yes or No to vote.");
+
+    const { data, error } = await supabase.rpc("cast_event_poll_vote", {
+        p_event_id: eventId,
+        p_voter_id: getEventPollVoterId(),
+        p_vote_choice: voteType
+    });
+    if (error) throw error;
+    if (!data || data.poll_yes == null || data.poll_no == null) {
+        throw new Error("The poll did not return updated results.");
+    }
+
     const votes = loadEventVotes();
-    if (votes[eventId]) return;
-    votes[eventId] = voteType;
+    votes[eventId] = data.vote_choice || voteType;
     saveEventVotes(votes);
-
-    const eventRef = doc(db, "events", eventId);
-    const snapshot = await get(eventRef);
-    const data = snapshot.exists() ? snapshot.data() : {};
-    const nextYes = Number(data.pollYes || 0) + (voteType === "yes" ? 1 : 0);
-    const nextNo = Number(data.pollNo || 0) + (voteType === "no" ? 1 : 0);
-    await updateDoc(eventRef, { pollYes: nextYes, pollNo: nextNo });
+    return data;
 }
-
 function renderSiteConfig(cfg = {}) {
     const verseTextEl = document.querySelector("[data-site='verse-text']");
     const verseRefEl = document.querySelector("[data-site='verse-ref']");
@@ -315,6 +359,7 @@ function watchEvents() {
             return;
         }
 
+        const votes = loadEventVotes();
         container.innerHTML = events.map((event) => {
             const isKcf = event.sourceType === "kcf";
             const organizer = isKcf
@@ -325,6 +370,18 @@ function watchEvents() {
             const time = [event.startTime || event.time, event.endTime].filter(Boolean).join(" – ");
             const venue = event.venue || event.location || "Venue to be announced";
             const caption = event.description || "Join us for this upcoming fellowship event.";
+            const voteChoice = votes[event.id] || "";
+            const pollYes = Number(event.pollYes || 0);
+            const pollNo = Number(event.pollNo || 0);
+            const poll = isKcf ? `
+                <section class="poll-block" data-event-poll="${escapeAttr(event.id)}" aria-label="Event attendance poll">
+                    <strong>Will you attend this event?</strong>
+                    <div class="poll-actions">
+                        <button class="btn btn-primary" type="button" data-event-vote="${escapeAttr(event.id)}" data-vote-choice="yes" aria-pressed="${voteChoice === "yes"}" ${voteChoice ? "disabled" : ""}>Yes (${pollYes})</button>
+                        <button class="btn btn-outline" type="button" data-event-vote="${escapeAttr(event.id)}" data-vote-choice="no" aria-pressed="${voteChoice === "no"}" ${voteChoice ? "disabled" : ""}>No (${pollNo})</button>
+                    </div>
+                    <p class="poll-status" data-poll-status role="status" aria-live="polite">${voteChoice ? `Your response: ${voteChoice === "yes" ? "Yes" : "No"}.` : "Choose one response. One vote per browser."}</p>
+                </section>` : "";
 
             return `<li class="visual-event-card">
                 <figure class="event-figure${banner ? "" : " event-figure-fallback"}">
@@ -341,10 +398,41 @@ function watchEvents() {
                     </div>
                     <p class="event-caption">${escapeHtml(caption)}</p>
                     ${event.registrationLink ? `<a class="btn btn-primary" href="${escapeAttr(event.registrationLink)}" target="_blank" rel="noopener noreferrer">Event Details</a>` : ""}
+                    ${poll}
                 </div>
             </li>`;
         }).join("");
     };
+
+    container.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-event-vote]");
+        if (!button || !container.contains(button)) return;
+        const eventId = button.getAttribute("data-event-vote");
+        const voteType = button.getAttribute("data-vote-choice");
+        const card = button.closest("[data-event-poll]");
+        const status = card?.querySelector("[data-poll-status]");
+        button.disabled = true;
+        if (status) status.textContent = "Saving your response…";
+
+        try {
+            const result = await voteOnEvent(eventId, voteType);
+            const postedEvent = feeds.kcf.find((item) => item.id === eventId);
+            if (postedEvent) {
+                postedEvent.pollYes = Number(result.poll_yes);
+                postedEvent.pollNo = Number(result.poll_no);
+            }
+            render();
+        } catch (error) {
+            console.error("Event poll vote failed.", error);
+            if (status) {
+                const message = String(error?.message || "");
+                status.textContent = message.toLowerCase().includes("cast_event_poll_vote")
+                    ? "Voting is not set up yet. The site administrator must apply the latest Supabase schema."
+                    : "Your response could not be saved. Please try again.";
+            }
+            button.disabled = false;
+        }
+    });
 
     onSnapshot(query(collection(db, "events"), orderBy("date", "asc")), (snap) => {
         feeds.kcf = snap.docs.map((document) => ({ id: document.id, ...document.data(), sourceType: "kcf" }));
@@ -356,7 +444,6 @@ function watchEvents() {
         render();
     });
 }
-
 function watchGallery() {
     const container = document.getElementById("galleryGrid");
     const status = document.getElementById("galleryPublishedStatus");
