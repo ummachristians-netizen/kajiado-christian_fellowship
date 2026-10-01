@@ -189,3 +189,31 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 @media (min-width:861px){.app-menu-trigger{order:-1}}
 @media (prefers-reduced-motion:reduce){.app-drawer-panel{animation:none}}
+
+/* Compact phone dashboard hierarchy */
+.eyebrow,.stat-card span{color:#8a6818}
+@media (max-width:860px){
+  .dashboard-top{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:start;gap:14px;padding:20px}
+  .welcome-block{grid-column:1;grid-row:1;min-width:0}
+  .app-menu-trigger{grid-column:2;grid-row:1;width:44px;height:44px;min-height:44px;padding:0;justify-content:center;font-size:0;border-radius:14px}
+  .app-menu-trigger span{font-size:1.15rem}
+  .top-actions{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:9px}
+  .top-actions>*{width:100%;min-width:0;min-height:48px;padding:10px 12px;font-size:.86rem;line-height:1.2;text-align:center}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .profile-card{grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:14px;padding:16px}
+  .profile-card img{width:68px;height:68px;flex:0 0 68px;border-radius:16px}
+  .profile-card>div{min-width:0}
+  .profile-card h3{font-size:1.3rem;overflow-wrap:anywhere}
+  .stat-card{min-height:96px;display:flex;flex-direction:column;justify-content:center;padding:14px}
+  .stat-card span{letter-spacing:.08em;font-size:.68rem}
+  .stat-card strong{font-size:1.5rem}
+}
+@media (max-width:420px){
+  .dashboard-top{padding:16px;gap:12px}
+  .top-actions>*{font-size:.8rem;padding:9px 8px}
+  .profile-card{gap:11px;padding:14px}
+  .profile-card img{width:58px;height:58px;flex-basis:58px}
+  .profile-card .eyebrow{font-size:.64rem;letter-spacing:.1em}
+  .profile-card h3{font-size:1.12rem}
+}
+@media (max-width:350px){.summary-grid{grid-template-columns:1fr}.profile-card{grid-column:1}}
