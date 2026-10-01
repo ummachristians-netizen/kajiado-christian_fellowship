@@ -96,6 +96,7 @@
             <p id="orgWelcomeLead">Stay connected with KCF, manage your events, and participate in fellowship activities.</p>
           </div>
           <div class="top-actions">
+            <button class="button button-ghost app-menu-trigger" id="appMenuBtn" type="button" aria-controls="memberAppDrawer" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button>
             <a class="button button-secondary" href="event.html">View Upcoming Events</a>
             <button class="button button-ghost" id="notificationsBtn" type="button">Notifications</button>
             <a class="button button-secondary" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer">Join WhatsApp</a>
@@ -273,15 +274,35 @@
 
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
   <footer class="portal-footer"><p>&copy; 2026 Kajiado Christian Fellowship, Kajiado.</p><p>Contact: <a href="tel:+254788160688">0788160688</a></p><p>Built by Kaka Under Teams Technologies</p></footer>
+  <div class="app-drawer hidden" id="memberAppDrawer" aria-hidden="true">
+    <button class="app-drawer-backdrop" type="button" data-close-app-drawer aria-label="Close navigation"></button>
+    <aside class="app-drawer-panel" role="dialog" aria-modal="true" aria-label="Member portal navigation">
+      <div class="app-drawer-header">
+        <a class="app-brand" href="membership.html"><img src="logo.svg" alt=""><span><strong>KCF Member</strong><small>Organization portal</small></span></a>
+        <button class="app-drawer-close" type="button" data-close-app-drawer aria-label="Close menu">&times;</button>
+      </div>
+      <p class="app-drawer-label">WORKSPACE</p>
+      <nav class="app-drawer-nav" aria-label="Portal sections">
+        <button type="button" data-section="overview"><span aria-hidden="true">⌂</span>Dashboard</button>
+        <button type="button" data-section="events"><span aria-hidden="true">▦</span>Events</button>
+        <button type="button" data-section="create"><span aria-hidden="true">＋</span>Create event</button>
+        <button type="button" data-section="profile"><span aria-hidden="true">◉</span>My organization</button>
+      </nav>
+      <p class="app-drawer-label">STAY CONNECTED</p>
+      <a class="app-drawer-link" href="event.html"><span aria-hidden="true">↗</span>Public events</a>
+      <a class="app-drawer-link" href="https://whatsapp.com/channel/0029Vb8PwvSGJP897JzdL01F" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◎</span>KCF WhatsApp channel</a>
+      <div class="app-drawer-footer"><span>Signed in as</span><strong id="drawerMemberName">Member organization</strong><button type="button" id="drawerLogoutBtn">Log out</button></div>
+    </aside>
+  </div>
   <nav class="bottom-nav hidden" id="bottomNav" aria-label="Member navigation">
-    <button type="button" data-section="overview">Dashboard</button>
-    <button type="button" data-section="events">Events</button>
-    <button type="button" data-section="create">Create</button>
-    <button type="button" id="mobileNotificationBtn">Alerts</button>
-    <button type="button" data-section="profile">Profile</button>
+    <button type="button" data-section="overview" aria-label="Dashboard"><span aria-hidden="true">⌂</span><small>Home</small></button>
+    <button type="button" data-section="events" aria-label="Events"><span aria-hidden="true">▦</span><small>Events</small></button>
+    <button type="button" data-section="create" aria-label="Create event"><span aria-hidden="true">＋</span><small>Create</small></button>
+    <button type="button" id="mobileNotificationBtn" aria-label="Notifications"><span aria-hidden="true">♧</span><small>Alerts</small></button>
+    <button type="button" data-section="profile" aria-label="My organization"><span aria-hidden="true">◉</span><small>Profile</small></button>
   </nav>
   <script src="runtime-config.js"></script>
-  <script type="module" src="membership.js?v=3"></script>
+  <script type="module" src="membership.js?v=4"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));

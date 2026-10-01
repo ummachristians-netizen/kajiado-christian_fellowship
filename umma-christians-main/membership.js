@@ -46,10 +46,22 @@ function setAuthView(view) {
 }
 
 function setSection(section) {
+  const sectionNames = ["overview", "events", "create", "profile"];
+  if (!sectionNames.includes(section)) return;
   document.querySelectorAll(".dash-section").forEach((el) => el.classList.remove("active"));
-  document.querySelectorAll(".dash-tab").forEach((el) => el.classList.toggle("active", el.dataset.section === section));
-  $(`${section}Section`)?.classList.add("active");
+  document.querySelectorAll("[data-section]").forEach((el) => {
+    const active = el.dataset.section === section;
+    el.classList.toggle("active", active);
+    if (el.closest(".bottom-nav, .app-drawer-nav")) {
+      if (active) el.setAttribute("aria-current", "page");
+      else el.removeAttribute("aria-current");
+    }
+  });
+  document.getElementById(section + "Section")?.classList.add("active");
+  closeAppDrawer();
+  window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
 }
+
 
 function showSuccess(profile) {
   $("successOrg").textContent = profile.name || "-";
@@ -68,6 +80,25 @@ function openDrawer(id) {
 
 function closeDrawer(id) {
   $(id)?.classList.add("hidden");
+}
+
+function openAppDrawer() {
+  const drawer = $("memberAppDrawer");
+  if (!drawer) return;
+  drawer.classList.remove("hidden");
+  drawer.setAttribute("aria-hidden", "false");
+  $("appMenuBtn")?.setAttribute("aria-expanded", "true");
+  document.body.classList.add("drawer-open");
+  drawer.querySelector("[data-close-app-drawer]")?.focus();
+}
+
+function closeAppDrawer() {
+  const drawer = $("memberAppDrawer");
+  if (!drawer || drawer.classList.contains("hidden")) return;
+  drawer.classList.add("hidden");
+  drawer.setAttribute("aria-hidden", "true");
+  $("appMenuBtn")?.setAttribute("aria-expanded", "false");
+  document.body.classList.remove("drawer-open");
 }
 
 function normalize(text) {
@@ -299,8 +330,15 @@ function attachCommonHandlers() {
   });
   $("notificationsBtn")?.addEventListener("click", () => openDrawer("notificationsDrawer"));
   $("mobileNotificationBtn")?.addEventListener("click", () => openDrawer("notificationsDrawer"));
-  $("mobileMenuBtn")?.addEventListener("click", () => {
-    showToast("Use the dashboard tabs below on mobile.");
+  $("appMenuBtn")?.addEventListener("click", openAppDrawer);
+  document.querySelectorAll("[data-close-app-drawer]").forEach((button) => button.addEventListener("click", closeAppDrawer));
+  $("drawerLogoutBtn")?.addEventListener("click", async () => {
+    closeAppDrawer();
+    await signOut(auth);
+    window.location.reload();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeAppDrawer();
   });
   document.querySelectorAll("[data-close-drawer]").forEach((button) => button.addEventListener("click", () => closeDrawer("notificationsDrawer")));
   document.querySelectorAll("[data-close-event-drawer]").forEach((button) => button.addEventListener("click", () => closeDrawer("eventDrawer")));
@@ -508,6 +546,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (state.profile && canAccessPortal(state.profile)) {
       renderProfile(state.profile);
+      setSection("overview");
+      $("drawerMemberName").textContent = state.profile.name || user.email || "Member organization";
       $("authScreen")?.classList.add("hidden");
       $("dashboardShell")?.classList.remove("hidden");
       $("bottomNav")?.classList.remove("hidden");
