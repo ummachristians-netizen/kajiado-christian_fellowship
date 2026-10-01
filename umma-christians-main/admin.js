@@ -480,9 +480,18 @@ function initOfficeLogin() {
         showStatus("Supabase is not configured yet. Set SUPABASE_URL and SUPABASE_ANON_KEY in runtime-config.js or Vercel.", true);
     }
 
-    const previousError = sessionStorage.getItem(OFFICE_AUTH_ERROR_KEY);
+    let previousError = "";
+    try {
+        previousError = sessionStorage.getItem(OFFICE_AUTH_ERROR_KEY) || "";
+    } catch (error) {
+        console.warn("Session storage is unavailable on the admin login page.", error);
+    }
     if (previousError) {
-        sessionStorage.removeItem(OFFICE_AUTH_ERROR_KEY);
+        try {
+            sessionStorage.removeItem(OFFICE_AUTH_ERROR_KEY);
+        } catch (error) {
+            console.warn("Could not clear the stored admin login error.", error);
+        }
         showStatus(previousError, true);
     }
 
@@ -1023,6 +1032,15 @@ function initOfficeDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    initOfficeLogin();
-    initOfficeDashboard();
+    try {
+        initOfficeLogin();
+        initOfficeDashboard();
+    } catch (error) {
+        console.error("Admin page initialization failed.", error);
+        const status = document.getElementById("loginStatus") || document.getElementById("adminStatus");
+        if (status) {
+            status.textContent = `Admin page initialization failed: ${error?.message || "Unexpected JavaScript error."}`;
+            status.style.color = "#b3261e";
+        }
+    }
 });

@@ -32,18 +32,34 @@
     </section>
 </main>
 <script src="runtime-config.js"></script>
-<script type="module" src="admin.js?v=8"></script>
+<script type="module" src="admin.js?v=9"></script>
 <script>
     // Runs while the document is parsed, before the deferred module executes.
     // If the auth module fails to load, prevent a silent native form reload.
     window.__KCF_ADMIN_LOGIN_READY__ = false;
     const adminForm = document.getElementById("adminLoginForm");
     const loginStatus = document.getElementById("loginStatus");
+    const showStartupError = (message) => {
+        if (window.__KCF_ADMIN_LOGIN_READY__ || !loginStatus) return;
+        loginStatus.textContent = message;
+        loginStatus.style.color = "#b3261e";
+    };
+    window.addEventListener("error", (event) => {
+        if (window.__KCF_ADMIN_LOGIN_READY__) return;
+        const failedScript = event.target instanceof HTMLScriptElement ? event.target.src : "";
+        const details = event.message || (failedScript ? `Failed to load ${new URL(failedScript).pathname}` : "Unexpected JavaScript startup error.");
+        showStartupError(`Admin login startup error: ${details}`);
+    }, true);
+    window.addEventListener("unhandledrejection", (event) => {
+        const reason = event.reason;
+        showStartupError(`Admin login startup error: ${reason?.message || String(reason || "Unhandled promise rejection.")}`);
+    });
     adminForm?.addEventListener("submit", (event) => {
         if (window.__KCF_ADMIN_LOGIN_READY__) return;
         event.preventDefault();
-        loginStatus.textContent = "Secure login did not initialize. Refresh this page; if this continues, check whether JavaScript or the Supabase module is blocked by your browser or network.";
-        loginStatus.style.color = "#b3261e";
+        if (loginStatus?.textContent === "Initializing secure login…") {
+            showStartupError("Secure login did not initialize. Check the startup error above, then refresh this page.");
+        }
     });
     window.setTimeout(() => {
         if (window.__KCF_ADMIN_LOGIN_READY__ || !loginStatus || loginStatus.textContent !== "Initializing secure login…") return;
