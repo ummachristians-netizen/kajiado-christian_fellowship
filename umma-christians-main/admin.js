@@ -567,7 +567,10 @@ function initOfficeLogin() {
         }
     });
 
-
+    if (hasSupabaseConfig && !previousError) {
+        showStatus("Enter your office email and password to continue.");
+    }
+    window.__KCF_ADMIN_LOGIN_READY__ = true;
 }
 
 function initOfficeDashboard() {

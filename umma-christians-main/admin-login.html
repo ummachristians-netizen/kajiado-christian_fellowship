@@ -27,13 +27,30 @@
             <button class="btn btn-primary" type="submit">Open Office Dashboard</button>
             <a class="btn btn-outline" href="index.html" style="text-align:center;text-decoration:none;">Return to Public Site</a>
         </form>
-        <p id="loginStatus" role="status" aria-live="polite" style="margin-top:10px;font-weight:700;"></p>
+        <p id="loginStatus" role="status" aria-live="polite" style="margin-top:10px;font-weight:700;">Initializing secure login…</p>
         <p class="kpi-label" style="margin-top:10px;">Office admins are limited to 10 active accounts.</p>
     </section>
 </main>
 <script src="runtime-config.js"></script>
-<script type="module" src="admin.js?v=7"></script>
+<script type="module" src="admin.js?v=8"></script>
 <script>
+    // Runs while the document is parsed, before the deferred module executes.
+    // If the auth module fails to load, prevent a silent native form reload.
+    window.__KCF_ADMIN_LOGIN_READY__ = false;
+    const adminForm = document.getElementById("adminLoginForm");
+    const loginStatus = document.getElementById("loginStatus");
+    adminForm?.addEventListener("submit", (event) => {
+        if (window.__KCF_ADMIN_LOGIN_READY__) return;
+        event.preventDefault();
+        loginStatus.textContent = "Secure login did not initialize. Refresh this page; if this continues, check whether JavaScript or the Supabase module is blocked by your browser or network.";
+        loginStatus.style.color = "#b3261e";
+    });
+    window.setTimeout(() => {
+        if (window.__KCF_ADMIN_LOGIN_READY__ || !loginStatus || loginStatus.textContent !== "Initializing secure login…") return;
+        loginStatus.textContent = "Secure login is taking too long to initialize. Check your connection and refresh the page.";
+        loginStatus.style.color = "#b3261e";
+    }, 8000);
+
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
     }
